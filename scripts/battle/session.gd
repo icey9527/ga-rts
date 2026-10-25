@@ -49,9 +49,18 @@ signal command_applied(kind: StringName, units: int)
 const CMD_MOVE := &"cmd_move"
 const CMD_ATTACK_MOVE := &"cmd_attack_move"
 const CMD_STOP := &"cmd_stop"
+## 改高度层（T-3.1）。**会话级**命令：不针对某个单位，options.layer = 层索引 0/1/2
+const CMD_SET_LAYER := &"cmd_set_layer"
 
 ## 默认高度层（ADR-0003 L1 = 0 m）。本卡所有单位都在 L1；切层归 S2 的高度指令。
 const LAYER_CRUISE := 0.0
+
+## 高度层中心（ADR-0003）。索引 0/1/2 = L0/L1/L2
+const LAYER_CENTERS: Array[float] = [-400.0, 0.0, 400.0]
+const LAYER_COUNT := 3
+const LAYER_DEFAULT := 1
+## 改层命令的 options 键
+const OPTION_LAYER := &"layer"
 
 ## 命令里世界落点的键名（InputRouter._point_options 的约定）
 const OPTION_POINT := "point"
@@ -88,6 +97,10 @@ var _pending_commands: Array = []
 
 ## 当前高度层中心（米，ADR-0003）
 var _layer_height := LAYER_CRUISE
+var _layer_index := LAYER_DEFAULT
+## 切层次数 / 因切层而重算的航线数（诊断用）
+var _layer_changes := 0
+var _repats := 0
 ## 已完成的 tick 数
 var _tick_index := 0
 
@@ -276,7 +289,58 @@ func obstacle_count() -> int:
 
 ## 当前高度层中心（米）。改层时下一次寻路会按新层高度过滤障碍（ADR-0003）。
 func set_layer_height(height: float) -> void:
-	_layer_height = height
+	# 容错：直接把层中心交给它（battle.gd 装配地图时就是这么用的）
+	var index := LAYER_DEFAULT
+	var best := INF
+	for i in LAYER_CENTERS.size():
+		var d := absf(LAYER_CENTERS[i] - height)
+		if d < best:
+			best = d
+			index = i
+	set_layer_index(index)
+
+
+## 层索引（0/1/2）→ 层中心（米）
+static func layer_center(index: int) -> float:
+	return LAYER_CENTERS[clampi(index, 0, LAYER_COUNT - 1)]
+
+
+func layer_index() -> int:
+	return _layer_index
+
+
+## 切到指定高度层。
+##
+## 切层**不是「只改一个数」**：它同时影响三件事
+##   1. 该层哪些障碍参与寻路（NavObstacle.blocks_at）
+##   2. 单位的巡航目标高度（UnitFlight.cruise_target_y）—— 自动生效，不需重算
+##   3. **已有航线是否还合法** —— 必须重算。
+##      否则会出现「在 L1 绕过 top=200 的岩石，升到 L2 后仍绕、
+##      或者从 L2 降回 L1 后直接穿过岩石」两种错误。
+func set_layer_index(index: int, repath: bool = true) -> void:
+	var clamped := clampi(index, 0, LAYER_COUNT - 1)
+	var next_height := LAYER_CENTERS[clamped]
+	if clamped == _layer_index and is_equal_approx(_layer_height, next_height):
+		return
+	_layer_index = clamped
+	_layer_height = next_height
+	_layer_changes += 1
+	if repath:
+		_repath_active_routes()
+
+
+## 切层后把还在飞的航线按新层重算一遍。
+## 目的地取航线的**最后一个点**（原始终点），不是下一个 waypoint ——
+## 按下一点重算会把单位的中途拐点当成新目的地，航程越切越短。
+func _repath_active_routes() -> void:
+	for unit in _units:
+		if not unit.alive or not unit.has_active_waypoint():
+			continue
+		if unit.route.is_empty():
+			continue
+		var destination := unit.route[unit.route.size() - 1]
+		_assign_route(unit, destination)
+		_repats += 1
 
 
 func layer_height() -> float:
@@ -292,6 +356,16 @@ func layer_height() -> float:
 func handle_command(cmd: Dictionary) -> void:
 	var kind: StringName = cmd.get("kind", &"")
 	var options: Dictionary = cmd.get("options", {})
+
+	# 改高度层是**会话级**命令，不针对任何单位。必须在解析 target 之前处理 ——
+	# 否则「没有单位参数」会被下面的 targets.is_empty() 当成无效命令丢掉。
+	if kind == CMD_SET_LAYER:
+		var layer: int = int(options.get(OPTION_LAYER, _layer_index))
+		set_layer_index(layer)
+		_commands_applied += 1
+		command_applied.emit(kind, 1)
+		return
+
 	var targets := _resolve_targets(cmd.get("target", null))
 	if targets.is_empty():
 		_ignored_commands += 1
@@ -751,6 +825,9 @@ func stats() -> Dictionary:
 		"last_path_points": _last_path_points,
 		"obstacles": _obstacles.size(),
 		"layer_height": _layer_height,
+		"layer_index": _layer_index,
+		"layer_changes": _layer_changes,
+		"layer_repaths": _repats,
 		"ticks": _tick_index,
 		"squads": _squads.size(),
 		"squads_with_target": squads_with_target,
