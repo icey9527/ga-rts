@@ -1,0 +1,35 @@
+# ---------- Godot 4 ----------
+.godot/
+/android/
+/export/
+/build/
+/dist/
+export_presets.cfg
+*.translation
+
+# ---------- 导出产物 ----------
+*.exe
+*.pck
+*.zip
+
+# ---------- 原始模型素材库（不入库，见 docs/model-pipeline.md） ----------
+# F:/godot/model 是只读素材源，仓库里只保留转换产物 assets/models/*.glb
+/model/
+/model-source/
+/assets/models/_raw/
+
+# ---------- 工具 / 编辑器 ----------
+.vscode/
+.idea/
+*.tmp
+*.log
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ---------- PI 助手会话历史 ----------
+.pi/
+
+# ---------- 本地临时 ----------
+/tools/model-pipeline/inventory-*.csv
+!/tools/model-pipeline/inventory-manifest.json
