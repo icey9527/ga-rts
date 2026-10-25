@@ -30,6 +30,15 @@ enum ViewMode {
 ## 模式切换过渡时长（docs/controls.md / ADR-0001：0.4 s 平滑插值）
 const TRANSITION_SECONDS := 0.4
 
+## 是否允许相机自己吃输入（事件直接进 _unhandled_input）。
+##
+## T-1.3 之后默认由 InputRouter 统一分发全部输入，场景装配器把它置 false：
+##   Battle（scenes/battle/battle.tscn）→ Camera 节点 accept_input = false
+## 置 false 时两台相机都不再自己处理事件，但**平滑与插值照旧跑**（set_process 不看这个开关）。
+## 留开关而不是直接删掉相机的输入代码，是为了 dev 场景（scenes/dev/verify_camera.tscn）
+## 还能单独验证相机手感。
+var accept_input := true
+
 @onready var camera_3d: RtsCamera3D = $Cam3D
 @onready var camera_2d: RtsCamera2D = $Cam2D
 
@@ -100,8 +109,10 @@ func _apply_mode(focus: Vector3) -> void:
 	camera_3d.snap_focus(focus)
 	camera_2d.snap_focus(focus)
 
-	camera_3d.accept_input = _mode == ViewMode.VIEW_3D
-	camera_2d.accept_input = _mode == ViewMode.VIEW_2D
+	# 输入闸门：本装配器关掉输入时，两台相机一起关 —— 否则切一次模式就把输入又打开了
+	# （InputRouter 接管的前提，见 accept_input 的注释）。
+	camera_3d.accept_input = accept_input and _mode == ViewMode.VIEW_3D
+	camera_2d.accept_input = accept_input and _mode == ViewMode.VIEW_2D
 	camera_3d.set_process(_mode == ViewMode.VIEW_3D)
 	camera_2d.set_process(_mode == ViewMode.VIEW_2D)
 

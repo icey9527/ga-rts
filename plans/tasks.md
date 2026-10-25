@@ -45,14 +45,14 @@
 - **约束**：见 ADR-0002；3D 焦点轨道（禁自由飞行）、2D 正交保留原版拖拽；缩放改距离不改 FOV
 - **验收**：3D 能绕焦点转/平移/缩放；2D 能拖拽/缩放；Tab 切换有 0.4s 过渡；相机不穿地
 
-### T-1.3 视图投影与拾取
+### T-1.3 视图投影与拾取 ✅
 
 - **交给**：worker
 - **产出**：`scripts/camera/view_projection.gd` 的四个方法 + `scripts/input/input_router.gd`
 - **约束**：**双视图唯一差异点**，业务代码不得出现 `if is_2d`
 - **验收**：同一份框选逻辑在 2D/3D 下都能选中单位；单元测试覆盖 `screen_to_world` 往返
 
-### T-1.4 寻路服务
+### T-1.4 寻路服务 ✅
 
 - **交给**：worker
 - **产出**：`scripts/systems/navigation/nav_obstacle.gd`、`nav_graph.gd`、`navigation_service.gd`
@@ -98,6 +98,8 @@
 | 特效管线 208 个公告板 glb | v0.5.0-s0.5 |
 | T-1.1 项目配置与骨架（3 autoload + 23 个 InputMap action + main/battle 场景） | v0.6.0-s1 |
 | T-1.2 双相机（3D 焦点轨道 / 2D 正交 / CameraRig / ViewProjection），43 条断言全过 | v0.6.0-s1 |
+| T-1.3 输入路由 InputRouter（720 行）+ 接线，68 条断言全过 | v0.7.0-s1 |
+| T-1.4 寻路服务（可视图 + Dijkstra），39 条断言全过 | v0.7.0-s1 |
 
 ## 管线坑（攒下来，别再踩）
 
