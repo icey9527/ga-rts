@@ -126,11 +126,12 @@ func spawn_unit(def_id: String, position: Vector3) -> Unit:
 
 	var def := UnitDef.from_record(def_id, record)
 	if not def.is_valid():
+		# 缺键清单同时进 _data_warnings：拒绝生成也要能在诊断里立刻看到"缺哪几个键"
+		var missing := def.missing_keys()
+		if not missing.is_empty():
+			_data_warnings[def_id] = missing
 		push_error("[BattleSession] 单位 '%s' 数据不完整，拒绝生成：%s" % [def_id, def.describe()])
 		return null
-	if not def.missing_stats.is_empty():
-		# 每条机型只记一次：S2 把键补进 unit.tbl 之后这里应该彻底消失
-		_data_warnings[def_id] = def.missing_stats.duplicate()
 
 	var unit := Unit.new(_next_id, def_id)
 	_next_id += 1
@@ -394,6 +395,7 @@ func navigation_stats() -> Dictionary:
 
 
 ## 机型数据缺键报告（def_id → 缺哪些统计键）。空字典 = 全部来自 TBL。
+## T-2.0 起缺键 = 坏数据，对应单位根本不会被生成（见 UnitDef.from_record）。
 func data_warnings() -> Dictionary:
 	return _data_warnings.duplicate(true)
 

@@ -12,18 +12,30 @@ extends RefCounted
 ##   同一个键的拼写（accel / acceleration / brake）只该在一处被理解。
 ##   单位换算（deg/s → rad/s）也只该在一处发生 —— 散到调用方就等着某天有人传了弧度。
 ##
-## ─── 关于缺键兜底（S1 的临时状态，S2 必须消掉）────────────────────────────
-## content/units/<id>/unit.tbl 目前只有 [stats] speed / max_hp / armor / shield /
-## radar / cost（见 T-1.1 的占位数据）。acceleration / deceleration / turn_rate /
-## radius / cruise_altitude 这些键**还没进 TBL**，而本卡不允许改 content/。
-## 所以缺键时用 DEFAULTS 兜底，并把它记进 missing_stats —— 调用方（BattleSession）
-## 把这个清单打出来，谁都能一眼看到"这条数据是兜底不是表里的"。
-## S2 把键补进 unit.tbl 之后，DEFAULTS 应当整块删掉，而不是继续留着。
+## ─── 必需键与"坏数据必须炸"（T-2.0 起）──────────────────────────────
+## content/units/<id>/unit.tbl 必须写全 REQUIRED_STATS 里的每一个键。缺任意一个都算坏数据：
+## 记进 missing_keys()，**push_error 列出缺了哪些**，并让 is_valid() 返回 false，
+## 于是 BattleSession.spawn_unit() 直接拒绝生成 —— 不再像 S1 那样拿 DEFAULTS 静默兜底
+## （兜底的后果是"数据没填"和"数据填对了"在运行时长得一模一样，见 ADR-0008）。
 ##
-## 兜底值来源：docs/scale-and-units.md 的尺寸量级 + Unit 的字段默认值（护卫舰量级）。
-## 它们**不是**"另一个数据源"，只是缺数据时的占位，写在数据层而不是 spawn 代码里。
+## 为什么不给"缺键"一个默认值：
+##   缺 acceleration 的木船照样能开，只是慢得莫名其妙；缺 radius 的大船会穿过小行星。
+##   静默降级把数据错误藏到表现层，调试成本远高于启动时一条红字。
 
-## 规范键 → TBL 里允许的别名（先命中先用）。键名顺序即报告顺序。
+## 必需键（缺一即坏数据）。顺序即 missing_keys() 的报告顺序；
+## STAT_ALIASES 给出每个规范键在 TBL 里允许的写法（先命中先用）。
+const REQUIRED_STATS: Array[String] = [
+	"max_speed",
+	"acceleration",
+	"deceleration",
+	"turn_rate_yaw",
+	"turn_rate_pitch",
+	"radius",
+	"cruise_altitude",
+	"max_hp",
+]
+
+## 规范键 → TBL 里允许的别名（先命中先用）
 const STAT_ALIASES := {
 	"max_speed": ["speed", "max_speed"],
 	"acceleration": ["acceleration", "accel"],
@@ -35,17 +47,10 @@ const STAT_ALIASES := {
 	"max_hp": ["max_hp"],
 }
 
-## 缺键兜底（S2 删掉，见文件头）。转速在 TBL / 本表里都是**度/秒**。
-const DEFAULTS := {
-	"max_speed": 180.0,
-	"acceleration": 60.0,
-	"deceleration": 80.0,
-	"turn_rate_yaw": 30.0,
-	"turn_rate_pitch": 20.0,
-	"radius": 20.0,
-	"cruise_altitude": 0.0,
-	"max_hp": 1000.0,
-}
+## cruise_altitude 的合法范围（米，相对本层中心的偏移）。
+## 与 UnitFlight.BAND 同源（ADR-0003：三层 ±150 带）；数据层不 import 模拟层，
+## 因此这里的常量与 unit_flight.gd 的 BAND 必须同步改（两者都是 150 是刻意的）。
+const MAX_CRUISE_ALTITUDE := 150.0
 
 ## 机型逻辑 ID（= content/units 下的目录名）
 var id := ""
@@ -69,15 +74,19 @@ var cruise_altitude := 0.0
 var max_hp := 0.0
 ## 模型逻辑名（[assets] model），交给 Registry.asset() 解析 —— 代码里不出现路径
 var model := ""
-## 本机型哪些统计键在 TBL 里缺失、用了 DEFAULTS（空 = 全部来自表）
-var missing_stats := PackedStringArray()
+## 本机型哪些必需键在 TBL 里缺失（空 = 数据完整）。读它请用 missing_keys()。
+var _missing_keys := PackedStringArray()
 
 
 ## 从 Registry.unit(id) 的记录解析。record 为空（未知 ID，Registry 已报错）时返回无效 def。
+##
+## 缺键不做兜底：字段保持 0、进 missing_keys()、push_error 列出全部缺失键、is_valid() = false。
+## 类型写错（写了键但不是数字）由 _read_number 单独报错，同样算缺键。
 static func from_record(def_id: String, record: Dictionary) -> UnitDef:
 	var def := UnitDef.new()
 	def.id = def_id
 	if record.is_empty():
+		# Registry.unit() 已报"未知单位 ID"，这里不重复报，只保证 def 无效
 		return def
 
 	var stats: Dictionary = record.get("stats", {})
@@ -85,22 +94,45 @@ static func from_record(def_id: String, record: Dictionary) -> UnitDef:
 	def.display_name = str(stats.get("name", def_id))
 	def.model = str(assets.get("model", ""))
 
-	for canonical in STAT_ALIASES.keys():
+	for canonical in REQUIRED_STATS:
+		if not STAT_ALIASES.has(canonical):
+			# 编程错误（REQUIRED_STATS 与 STAT_ALIASES 不同步），不是数据错误
+			push_error("[UnitDef] REQUIRED_STATS 里的 '%s' 没有对应的 STAT_ALIASES 条目" % canonical)
+			def._missing_keys.append(canonical)
+			continue
 		var aliases: Array = STAT_ALIASES[canonical]
 		var parsed: Variant = _read_number(stats, aliases, def_id)
 		if parsed == null:
-			def.missing_stats.append(str(canonical))
-			def.set(canonical, float(DEFAULTS[canonical]))
+			def._missing_keys.append(canonical)
 			continue
 		def.set(canonical, float(parsed))
+
+	if not def._missing_keys.is_empty():
+		push_error("[UnitDef] 机型 '%s' 的 [stats] 缺少必需键：%s（来源 %s）。坏数据不兜底，拒绝生成。" % [
+			def_id, ", ".join(def._missing_keys), str(record.get("source", "?"))])
+	elif absf(def.cruise_altitude) > MAX_CRUISE_ALTITUDE:
+		# 超范围不进 missing_keys（键在、值不对），由 is_valid() 拦下
+		push_error("[UnitDef] 机型 '%s' 的 cruise_altitude = %.1f 超出 ±%.0f 带（ADR-0003），拒绝生成。" % [
+			def_id, def.cruise_altitude, MAX_CRUISE_ALTITUDE])
 	return def
 
 
-## 数据是否可用（ID 有、速度为正）。坏数据在调用方（BattleSession.spawn_unit）就拦住，
+## 诊断接口：本机型在 TBL 里缺哪些必需键（空 = 完整）。
+## 非空 ⇒ is_valid() 为 false ⇒ BattleSession 不会生成它。
+func missing_keys() -> PackedStringArray:
+	return _missing_keys.duplicate()
+
+
+## 数据是否可用。坏数据在调用方（BattleSession.spawn_unit）就拦住，
 ## 不允许"生成一艘 0 速船然后永远不动"这种静默失败。
 func is_valid() -> bool:
-	return not id.is_empty() and max_speed > 0.0 and acceleration >= 0.0 \
-		and deceleration >= 0.0 and radius >= 0.0
+	if id.is_empty() or not _missing_keys.is_empty():
+		return false
+	if max_speed <= 0.0 or acceleration <= 0.0 or deceleration <= 0.0:
+		return false
+	if turn_rate_yaw <= 0.0 or turn_rate_pitch <= 0.0 or radius <= 0.0:
+		return false
+	return absf(cruise_altitude) <= MAX_CRUISE_ALTITUDE
 
 
 ## 把数据写进 Unit。单位换算（度/秒 → 弧度/秒）只在这里做。
@@ -108,6 +140,11 @@ func is_valid() -> bool:
 func apply_to(unit: Unit) -> void:
 	if unit == null:
 		push_error("[UnitDef] apply_to(null)：机型 %s 没有落点" % id)
+		return
+	if not is_valid():
+		# 走到这里说明调用方没先问 is_valid()。宁可不装配，也不装配半艘船
+		push_error("[UnitDef] 机型 %s 数据不完整（缺键：%s），拒绝装配" % [
+			id, "无" if _missing_keys.is_empty() else ", ".join(_missing_keys)])
 		return
 	unit.max_speed = max_speed
 	unit.acceleration = acceleration
@@ -120,14 +157,14 @@ func apply_to(unit: Unit) -> void:
 
 ## 诊断用的一行文本
 func describe() -> String:
-	var source := "TBL" if missing_stats.is_empty() else \
-		"TBL + 兜底(%s)" % ", ".join(missing_stats)
+	var source := "TBL" if _missing_keys.is_empty() else \
+		"TBL 缺键(%s)" % ", ".join(_missing_keys)
 	return "UnitDef(%s %s speed=%.1f accel=%.1f decel=%.1f yaw=%.1f°/s pitch=%.1f°/s r=%.1f alt=%+.1f 来源=%s)" % [
 		id, display_name, max_speed, acceleration, deceleration,
 		turn_rate_yaw, turn_rate_pitch, radius, cruise_altitude, source]
 
 
-## 在 [stats] 里按别名顺序找一个数值。找不到返回 null（调用方兜底）；
+## 在 [stats] 里按别名顺序找一个数值。找不到返回 null（调用方记缺键）；
 ## 找到但不是数字则 push_error 并返回 null（拼错了不该静默变成兜底值）。
 static func _read_number(stats: Dictionary, aliases: Array, def_id: String) -> Variant:
 	for alias in aliases:

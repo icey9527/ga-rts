@@ -111,6 +111,21 @@ func units() -> PackedStringArray:
 	return _ids_of("units")
 
 
+## 地图 ID 列表（content/maps 扫描结果），字典序
+func maps() -> PackedStringArray:
+	return _ids_of("maps")
+
+
+## 地图记录：结构同 unit()（[map] / [obstacle.*] / [spawn.*] 的嵌套字典）
+## 未知 ID → push_error 并返回空字典。解析与校验在 scripts/data/map_def.gd。
+func map(id: String) -> Dictionary:
+	var records: Dictionary = _records.get("maps", {})
+	if not records.has(id):
+		push_error("[registry] 未知地图 ID: %s" % id)
+		return {}
+	return (records[id] as Dictionary).duplicate(true)
+
+
 ## 单位记录：{"id": ..., "source": ..., 各 section 扁平展开}
 ## 未知 ID → push_error 并返回空字典
 func unit(id: String) -> Dictionary:

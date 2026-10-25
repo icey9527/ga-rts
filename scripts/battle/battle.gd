@@ -22,33 +22,13 @@ extends Node3D
 ## 相机由 scenes/camera/rts_camera.tscn 实例化，上层只通过 view_projection() 取投影，
 ## 因此不知道当前是 2D 还是 3D（ADR-0001）。
 
-# ---------------------------------------------------------------- 地图内容（本卡）
+# ---------------------------------------------------------------- 地图（逻辑 ID，不是路径）
 #
-# TODO(S2)：改从地图 TBL 读（content/maps/<id>/map.tbl 的 [terrain] / [spawn] 节）。
-# 现在写在本文件顶部是因为 S1 还没有地形数据格式；**不要**把这些数字散到函数里。
-
-## 障碍：NavObstacle 的 (圆心 XZ, XZ 半径, 柱顶, 柱底)。
-## 尺寸参考 docs/scale-and-units.md：小行星 / 空间站 50~800 m。
-## 云图说明（让右下的船必须绕行）：
-##   A 挡在起终点连线附近、B 更靠右、C 偏北纯装饰（不挡直飞，用来验证高度过滤/视觉层次）。
-const MAP_OBSTACLES := [
-	{"position": Vector3(-400.0, 0.0, -100.0), "radius_xz": 320.0, "top_y": 400.0, "bottom_y": -200.0},
-	{"position": Vector3(1200.0, 0.0, 250.0), "radius_xz": 380.0, "top_y": 500.0, "bottom_y": -300.0},
-	{"position": Vector3(-1800.0, 0.0, 900.0), "radius_xz": 240.0, "top_y": 300.0, "bottom_y": -300.0},
-]
-
-## 单位：机型逻辑 ID + 生成位置（世界坐标，米）。机型数据全部走 Registry（硬规则 5）。
-const MAP_SHIPS := [
-	{"def_id": "ou134", "position": Vector3(-3000.0, 0.0, 0.0)},
-	{"def_id": "ou05", "position": Vector3(-3000.0, 0.0, 1400.0)},
-]
-
-## 进场机位：焦点放在战场中心，距离够看到起点与障碍。
-const OVERVIEW_FOCUS := Vector3(-200.0, 0.0, 300.0)
-const OVERVIEW_DISTANCE := 7000.0
-
-## 天空逻辑名（assets.tbl 的 [sky] 节）。S2 改由地图数据指定。
-const SKY_LOGICAL_NAME := "si_sbg_0110"
+# T-2.0 起地图内容（障碍 / 初始单位 / 天空 / 进场机位）全部在
+# content/maps/<id>/map.tbl，本文件只剩一个**逻辑 ID**（= content/maps 下的目录名）。
+# 硬规则 5 的同一条逻辑：代码不写资产名、不写坐标，只写逻辑 ID。
+# 换地图 = 改这一行（S3 会改成关卡选择 / 命令行参数）。
+const MAP_ID := "skirmish"
 
 ## 路径线的颜色（L2 表现层，纯视觉，不参与模拟）
 const ROUTE_COLOR := Color(0.45, 1.0, 0.65, 1.0)
@@ -64,6 +44,8 @@ const INFLATED_COLOR := Color(0.35, 0.75, 1.0, 0.10)
 
 ## 模拟中枢（RefCounted：不占节点、可无头单测）
 var _session: BattleSession = null
+## 本局地图数据（L0，来自 Registry.map(MAP_ID)；加载失败时为 null，世界为空）
+var _map: MapDef = null
 ## unit.id → UnitView（表现层索引，仅本文件持有）
 var _views: Dictionary = {}
 
@@ -81,6 +63,9 @@ func _ready() -> void:
 
 	# 依赖注入，不在 InputRouter 里写死节点路径
 	input_router.setup(camera_rig, camera_rig.view_projection())
+
+	# 地图先加载：天空 / 障碍 / 单位 / 进场机位全从它来（L0 → 本文件只做接线）
+	_load_map()
 
 	_setup_environment()
 	_setup_route_gizmo()
@@ -105,12 +90,21 @@ func _ready() -> void:
 		Simulation.ticked.connect(_on_ticked)
 
 	# 进场机位（相机只是镜头，不写模拟状态）
-	camera_rig.focus_on(OVERVIEW_FOCUS, true)
-	camera_rig.camera_3d.zoom_to(OVERVIEW_DISTANCE, true)
+	if _map != null:
+		camera_rig.focus_on(_map.focus, true)
+		camera_rig.camera_3d.zoom_to(_map.camera_distance, true)
 
-	print("[battle] 装配完成：单位 %d，障碍 %d，机型数据缺键 %s" % [
+	# 机型数据完整性：缺键 = 坏数据，对应单位不会被生成（见 UnitDef）
+	var missing := _session.data_warnings()
+	if not missing.is_empty():
+		push_error("[battle] 以下机型有必需键缺失，对应单位未能生成：%s" % str(missing))
+	print("[battle] 装配完成：地图 %s，单位 %d，障碍 %d，层级 %s" % [
+		"(未加载)" if _map == null else _map.id,
 		_session.unit_count(), _session.obstacle_count(),
-		"无" if _session.data_warnings().is_empty() else str(_session.data_warnings())])
+		"(未加载)" if _map == null else "L%d/%+.0f m" % [
+			_map.layer_default, MapDef.layer_center(_map.layer_default)]])
+	print("[battle] 机型数据来源：%s" % (
+		"全部必需键来自 unit.tbl" if missing.is_empty() else str(missing)))
 
 
 func _exit_tree() -> void:
@@ -129,12 +123,37 @@ func session() -> BattleSession:
 # ---------------------------------------------------------------- 地图装配
 
 
+## 从 Registry 读地图：逻辑 ID → 记录 → MapDef（解析 + 校验）。
+## 坏数据不静默降级：Registry / MapDef 会逐条 push_error，这里只负责汇报；
+## _map 保持 null 时世界是空的（不拿旧常量兜底）。
+func _load_map() -> void:
+	var registry := GameState.registry()
+	if registry == null:
+		push_error("[battle] GameState.registry() 为空，地图 '%s' 无法加载" % MAP_ID)
+		return
+	var record := registry.map(MAP_ID)  # 未知 ID 时 Registry 已 push_error
+	if record.is_empty():
+		return
+	_map = MapDef.from_record(MAP_ID, record, registry)
+	if not _map.is_valid():
+		push_error("[battle] 地图 '%s' 有 %d 处数据错误，放弃装配（详见上方的 [MapDef] 报错）" % [
+			MAP_ID, _map.errors.size()])
+		_map = null
+		return
+	for line in _map.warnings:
+		push_warning("[battle] 地图 '%s' %s" % [MAP_ID, line])
+
+
 func _build_map() -> void:
-	for entry in MAP_OBSTACLES:
+	if _map == null:
+		return
+	# 本局的默认高度层来自地图（ADR-0003）；逐单位切层指令归 S2
+	_session.set_layer_height(MapDef.layer_center(_map.layer_default))
+	for entry in _map.obstacles:
 		var obstacle := NavObstacle.new(
-			entry["position"], entry["radius_xz"], entry["top_y"], entry["bottom_y"])
+			entry.position, entry.radius, entry.top_y, entry.bottom_y)
 		if not obstacle.is_valid():
-			push_error("[battle] 障碍数据不自洽，跳过：%s" % obstacle.describe())
+			push_error("[battle] 障碍 %s 不自洽，跳过：%s" % [entry.name, obstacle.describe()])
 			continue
 		_session.add_obstacle(obstacle)
 		_build_obstacle_visual(obstacle)
@@ -188,9 +207,11 @@ func _simple_material(color: Color, transparent: bool) -> StandardMaterial3D:
 
 
 func _spawn_units() -> void:
-	for entry in MAP_SHIPS:
-		var def_id := str(entry["def_id"])
-		var unit := _session.spawn_unit(def_id, entry["position"])
+	if _map == null:
+		return
+	for entry in _map.spawns:
+		var def_id := entry.unit_id
+		var unit := _session.spawn_unit(def_id, entry.position)
 		if unit == null:
 			push_error("[battle] 单位 '%s' 生成失败（见上方 Registry 报错）" % def_id)
 			continue
@@ -274,7 +295,7 @@ func _rebuild_route_mesh() -> void:
 # ---------------------------------------------------------------- 环境（纯表现）
 
 
-## 天空 + 环境光 + 一盏方向光。天空贴图走 Registry（硬规则 5），逻辑名见 SKY_LOGICAL_NAME。
+## 天空 + 环境光 + 一盏方向光。天空贴图走 Registry（硬规则 5），逻辑名来自地图的 [map] sky。
 func _setup_environment() -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
@@ -307,7 +328,9 @@ func _load_sky_texture() -> Texture2D:
 	var registry := GameState.registry()
 	if registry == null:
 		return null
-	var path := registry.asset(SKY_LOGICAL_NAME)
+	if _map == null or _map.sky.is_empty():
+		return null
+	var path := registry.asset(_map.sky)
 	if path.strip_edges().is_empty():
 		return null
 	var candidate := "%s.png" % path

@@ -1,0 +1,66 @@
+; ============================================================
+; skirmish —— 目录名即 ID（content/maps/skirmish → 地图 ID = skirmish）
+; 遭遇战示例地图。T-2.0 起 battle.gd 只写逻辑 ID，坐标全部在这里。
+;
+; 节结构（解析与校验见 scripts/data/map_def.gd）：
+;   [map]              地图级参数：显示名 / 默认层 / 天空 / 进场机位
+;   [obstacle.<名字>]  一个 XZ 圆柱障碍：pos:vec3 / radius / top / bottom
+;   [spawn.<名字>]     一个初始单位：unit / team / pos:vec3 / layer
+;
+; 单位口径（docs/scale-and-units.md）：
+;   1 unit = 1 m，+Y 向上；障碍尺寸 50~800 m（小行星 / 空间站量级）。
+;   高度三层：L0 = -400 / L1 = 0 / L2 = +400，每层容差带 ±150（ADR-0003）。
+;   障碍的 top 高于某层中心 → 该层要绕行；top <= 某层中心 → 该层直接飞过。
+; ============================================================
+
+[map]
+name     = "遭遇战 · 碎石带"
+layer:int = 1                  ; 默认层 L1（0 m）
+sky      = si_sbg_0110         ; assets.tbl [sky] 的逻辑名（不是路径）
+focus:vec3 = -200,0,300        ; 进场机位焦点：能看到起点与整条障碍带
+distance = 7000.0              ; 进场机位距离（米）
+
+; ------------------------------------------------------------
+; 障碍
+;   rock_west  top=200 → 挡 L0(-400) 与 L1(0)，L2(+400) 可飞越  ← 低层障碍
+;   rock_east  top=800 → 三层全挡（高于 800 的物体在所有层都是障碍）
+;   rock_north top=300 → 挡住起终点连线的北侧，纯装饰 / 验证高度视觉层次
+; 云图意图：起终点连线（z≈0）被 rock_west 与 rock_east 卡住，必须绕行。
+; ------------------------------------------------------------
+
+[obstacle.rock_west]
+pos:vec3 = -400,0,-100
+radius   = 320.0
+top      = 200.0
+bottom   = -300.0
+
+[obstacle.rock_east]
+pos:vec3 = 1200,0,250
+radius   = 380.0
+top      = 800.0
+bottom   = -300.0
+
+[obstacle.rock_north]
+pos:vec3 = -1800,0,900
+radius   = 240.0
+top      = 300.0
+bottom   = -300.0
+
+; ------------------------------------------------------------
+; 初始单位
+;   unit  = 机型逻辑 ID（content/units/<id>/unit.tbl），机型数据全部走 Registry
+;   team  = 队伍号（队伍数据未建，暂时只记录）
+;   layer = 所在层；pos.y 必须落在该层容差带 ±150 内
+; ------------------------------------------------------------
+
+[spawn.cruiser_01]
+unit     = ou134
+team:int = 1
+pos:vec3 = -3000,0,0
+layer:int = 1
+
+[spawn.frigate_02]
+unit     = ou05
+team:int = 1
+pos:vec3 = -3000,0,1400
+layer:int = 1

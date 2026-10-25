@@ -66,7 +66,14 @@ const CHAIN_OBSTACLES := [
 # ---------------------------------------------------------------- 用例 2 场景
 const TRAP_OBSTACLE_COUNT := 6
 const TRAP_OBSTACLE_RADIUS := 300.0
-const TRAP_RING_DISTANCE := 400.0
+## 包围圈半径（圆心到原点的距离）。必须同时满足两条，否则用例 2 的题材就失效了：
+##   1. 起点（原点）不在任何**膨胀**圈里：R > 障碍 r + 单位 r + 余量
+##   2. 相邻膨胀圈互相压过（洞封死）：相邻圆心距 R < 2 × 膨胀半径
+## T-2.0 起 SHIP_DEF_ID 的 radius 来自 unit.tbl，ou134 = 176 m（船长 351.7 的一半），
+## 膨胀半径 300+176+4 = 480 → R 必须 > 480；原地 400 会让起点落进圈内，
+## 单位被推到圈外后直接看得见目标，于是"围死"变成了"能跑出去"。
+## 取 R = 700：起点离圆心 700 > 480（在圈外），相邻圆心距 700 < 960（洞封死）。
+const TRAP_RING_DISTANCE := 700.0
 const TRAP_START := Vector3.ZERO
 const TRAP_TARGET := Vector3(5000.0, 0.0, 0.0)
 
