@@ -51,6 +51,8 @@ const CMD_ATTACK_MOVE := &"cmd_attack_move"
 const CMD_STOP := &"cmd_stop"
 ## 改高度层（T-3.1）。**会话级**命令：不针对某个单位，options.layer = 层索引 0/1/2
 const CMD_SET_LAYER := &"cmd_set_layer"
+## 改阵型（T-3.3）。会话级命令：options.formation = Formation.Kind
+const CMD_SET_FORMATION := &"cmd_set_formation"
 
 ## 默认高度层（ADR-0003 L1 = 0 m）。本卡所有单位都在 L1；切层归 S2 的高度指令。
 const LAYER_CRUISE := 0.0
@@ -61,6 +63,8 @@ const LAYER_COUNT := 3
 const LAYER_DEFAULT := 1
 ## 改层命令的 options 键
 const OPTION_LAYER := &"layer"
+## 改阵型命令的 options 键
+const OPTION_FORMATION := &"formation"
 
 ## 命令里世界落点的键名（InputRouter._point_options 的约定）
 const OPTION_POINT := "point"
@@ -139,6 +143,12 @@ var _pursuit_cooldown: Dictionary = {}
 var _pursuits := 0
 ## 同队分离累计推开的对数（T-3.2，诊断用）
 var _separations := 0
+
+## 当前阵型（T-3.3）。群组移动命令按它分配槽位
+var _formation := Formation.Kind.WEDGE
+var _formation_changes := 0
+## 按阵型分配的槽位数（诊断用）
+var _formation_slots := 0
 ## 累计命中结算次数（T-2.3）
 var _hits_applied := 0
 
@@ -357,6 +367,85 @@ func layer_height() -> float:
 	return _layer_height
 
 
+# ---------------------------------------------------------------- 阵型（T-3.3）
+
+
+func formation() -> int:
+	return _formation
+
+
+func formation_name() -> String:
+	return Formation.kind_name(_formation)
+
+
+## 切换阵型。只看“类型变没变”，相同则幂等返回。
+##
+## 平滑过渡的做法不是插值，而是**重新分配槽位 + 重算航线** ——
+## 单位自己飞过去，天然就是平滑的，也不需要额外的动画状态机。
+func set_formation(kind: int) -> void:
+	var clamped := clampi(kind, 0, Formation.KIND_COUNT - 1)
+	if clamped == _formation:
+		return
+	_formation = clamped
+	_formation_changes += 1
+	_reapply_formation()
+
+
+## 把已经在下达阵型命令的编队按**新阵型**重新排一遍。
+## 目的地取各成员航线终点的重心：用重心而不是某个人的终点，
+## 因为不同成员原本的终点就已经分散在旧阵型槽位上，取重心才回到原来的落点。
+func _reapply_formation() -> void:
+	for squad in _squads:
+		var members: Array[Unit] = []
+		for unit in squad.alive_units():
+			if unit.has_active_waypoint() and not unit.route.is_empty():
+				members.append(unit)
+		if members.size() < 2:
+			continue
+		var dest := Vector3.ZERO
+		for unit in members:
+			dest += unit.route[unit.route.size() - 1]
+		dest /= float(members.size())
+		_assign_formation_routes(members, dest, members[0].attack_move)
+
+
+## 多单位移动：给每个单位分一个槽位，而不是让所有人飞向同一个点。
+##
+## 为什么要排序：命令里的单位顺序不一定稳定（框选顺序 / 数组拼接），
+## 不排序的话同一个命令两次执行会得到不同槽位分配，回放就废了。
+func _assign_formation_routes(units: Array[Unit], point: Vector3, is_attack: bool) -> void:
+	var ordered: Array[Unit] = []
+	for unit in units:
+		if unit != null:
+			ordered.append(unit)
+	ordered.sort_custom(func(a: Unit, b: Unit) -> bool: return a.id < b.id)
+
+	var spacing := Formation.spacing_for(ordered)
+	var offsets := Formation.slot_offsets(ordered.size(), _formation, spacing)
+	if offsets.is_empty():
+		return
+
+	# 队形朝向 = 从当前位置重心指向落点；两者重合时退化用 +Z（无方向）
+	var from := _centroid(ordered)
+	var forward := point - from
+
+	for i in ordered.size():
+		var unit: Unit = ordered[i]
+		unit.attack_move = is_attack
+		var destination := point + Formation.to_world(offsets[i], forward)
+		_assign_route(unit, destination)
+		_formation_slots += 1
+
+
+func _centroid(units: Array[Unit]) -> Vector3:
+	if units.is_empty():
+		return Vector3.ZERO
+	var sum := Vector3.ZERO
+	for unit in units:
+		sum += unit.position
+	return sum / float(units.size())
+
+
 # ---------------------------------------------------------------- 命令
 
 
@@ -376,6 +465,14 @@ func handle_command(cmd: Dictionary) -> void:
 		command_applied.emit(kind, 1)
 		return
 
+	# 改阵型同理：会话级，不看 units
+	if kind == CMD_SET_FORMATION:
+		var f: int = int(options.get(OPTION_FORMATION, _formation))
+		set_formation(f)
+		_commands_applied += 1
+		command_applied.emit(kind, 1)
+		return
+
 	var targets := _resolve_targets(cmd.get("target", null))
 	if targets.is_empty():
 		_ignored_commands += 1
@@ -391,9 +488,13 @@ func handle_command(cmd: Dictionary) -> void:
 				return
 			# 攻防模式写进 Unit，由状态机决定"途中遇敌要不要拐一下"（UnitStates._step_moving）
 			var is_attack := kind == CMD_ATTACK_MOVE
-			for unit in targets:
-				unit.attack_move = is_attack
-				_assign_route(unit, point)
+			# 多单位 → 按阵型分槽位；单单位 → 直接去落点（不需要为 1 艘船排阵）
+			if targets.size() > 1:
+				_assign_formation_routes(targets, point, is_attack)
+			else:
+				for unit in targets:
+					unit.attack_move = is_attack
+					_assign_route(unit, point)
 		CMD_STOP:
 			for unit in targets:
 				unit.attack_move = false
@@ -848,6 +949,9 @@ func stats() -> Dictionary:
 		"layer_index": _layer_index,
 		"layer_changes": _layer_changes,
 		"layer_repaths": _repats,
+		"formation": _formation,
+		"formation_changes": _formation_changes,
+		"formation_slots": _formation_slots,
 		"ticks": _tick_index,
 		"squads": _squads.size(),
 		"squads_with_target": squads_with_target,
