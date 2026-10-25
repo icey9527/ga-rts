@@ -115,9 +115,43 @@ glTF/Godot Y 上、-Z 前      ← Godot 前向就是 -Z
 | 三角面合计 | 约 17.7 万 |
 | 炮塔独立节点 | ou05 的 `turret_SB_ou05E_laser`（pivot 校验通过，偏差 0） |
 
+## 天空球烘焙（bake_sky.py）
+
+把半径约 5 万单位的天空球壳烘成 equirectangular 全景，运行时交给 Godot 的 Sky 资源。
+产物：`assets/sky/<si_sbg_XXXX>.png`（2048×1024）+ `sky_manifest.json`。
+
+原始素材：25 个关卡目录，去重后 **15 套不重复天空**；每套由 4~14 个 GEOM 球壳拼成，
+贴图全是 256² 以内的 RGB（无 alpha），图层包括星空底 si_sbg / 星云 si_sbs /
+云 si_sbo / 轨道环 si_sor / 太阳 si_sun / 环境底色 si_abg。
+
+### 三个关键坑（都已修，勿重蹈）
+
+1. **材质必须接到 Material Output**。只把贴图连到 BSDF 的 Emission Color 而漏掉
+   `BSDF -> Material Output`，节点树没有输出，渲染结果永远是纯黑，且不报错。
+   换引擎、改裁剪、加曝光都救不回来 —— 本末症状就这一个。
+2. **不能用 AgX 色调映射**。必须 `view_transform = 'Standard'`，否则纯白 1.0 被压到 0.75，
+   所有颜色错位。
+3. **隐藏对象要遍历全部网格**，不能只遍历参与叠加的层。被跳过的 `si_abg`（16×16 纯白）
+   如果留着可见，会把它里面所有层全部遮挡。
+
+### 混合方式
+
+原引擎的混合参数已不可考。实测 **纯加法会严重过曝**（峰值到 3.5），改用 **screen**
+（`1-(1-a)(1-b)`，加法但永不溢出），默认已选它。可切回对比：
+
+```
+blender.exe -b -P bake_sky.py -- --blend sum    # 过曝，仅调试用
+blender.exe -b -P bake_sky.py -- --blend max    # 取最亮，星空更干净
+```
+
+### 已选择跳过 `si_abg`
+
+16×16 纯白图层（平均色 1,1,1），原意应是环境底色/雾色，需要乘以关卡配置的低强度才合理。
+我们没有那份配置，直接跳过，否则整今天空变灰白。
+
 ## 待办
 
 - [x] 舰首朝向确认（渲染图 + Godot 目测双重验证，脚本默认翻转）
 - [ ] 特效管线 `oe*` / `si_e*`（单独脚本，走粒子/billboard 而非网格）
-- [ ] 天空球烘焙 `bake_sky.py`（`ek/axo/stage/*/si_sbg_*` → equirectangular 全景）
+- [x] 天空球烘焙 `bake_sky.py`（15 套天空 → 2048×1024 equirect，共 26.2 MB，耗时 556 秒）
 - [ ] 武器挂点：模型里没有空节点，炮口位置需按武器类型在资源表里配偏移

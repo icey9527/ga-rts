@@ -5,7 +5,7 @@
 ## 当前状态
 
 **S0 完成**（tag v0.0.1-s0 后续 tag v0.0.2-s0.1）—— 地基、文档基线、数据注册表设计、工具分层
-**S0.5 进行中** —— 模型转换管线已跑通（29 个 glb / 25.9 MB / 4.8 秒），剩余天空烘焙、特效管线、base.tbl
+**S0.5 进行中** —— 模型（29 glb）+ 天空（15 套）均已完成；剩特效管线、base.tbl、Godot 内验证
 
 ## 阶段计划
 
@@ -84,7 +84,7 @@
    - 生成 tools/pipeline/model-pipeline/manifest.json ✅
    - **实测结果：29 个逻辑 ID / 25.9 MB / 17.7 万三角面 / 耗时 4.8 秒**
 3. ~~编写 verify_glb.py 回读校验~~ ✅（层级、尺寸、炮塔 pivot��材质去重）
-4. 天空球烘焙：ek/axo/stage/*/si_sbg_* → equirectangular 全景 → assets/sky/
+4. ~~天空球烘焙~~ ✅ `bake_sky.py`：15 套天空 → 2048×1024 equirect，26.2 MB，556 秒
 5. 特效管线：el/scn0 下 oe* 与 ek/axo/effects/si_e* → 粒子/billboard 资源
 6. 写 content/base.tbl + content/assets/assets.tbl 初版
 7. ~~**舰首朝向目视确认**~~ ✅ 已确认：素材舰首在 +Z，需翻转 180°，脚本默认已开启
@@ -101,6 +101,8 @@
 | 坑 1 | `mesh.materials.clear()` 会重置所有面材质索引，必须先缓存后写回（已修） |
 | 坑 2 | `ob1505a/` 里混着 `SB_ou241E`（属于 ou241），已按 ID 归属剔除（已修） |
 | 坑 3 | map_Ka 不被 Blender 支持，只剩警告，不影响结果 |
+| 坑 4 | 材质漏接 BSDF → Material Output 会使渲染结果全黑且不报错（天空烘焙踩过） |
+| 天空 | 15 套天空球已烘成 equirect 全景；原引擎混合模式不可考，采用 screen 混合（纯加法会过曝到 3.5 峰值） |
 
 ## 待用户拍板（不阻塞）
 

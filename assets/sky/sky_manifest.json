@@ -1,0 +1,347 @@
+{
+  "version": 3,
+  "blend": "screen-linear",
+  "engine": "cycles",
+  "entries": [
+    {
+      "name": "si_sbg_0110",
+      "source": "F:\\godot\\model\\ek\\axo\\stage\\000200\\si_sbg_0110",
+      "output": "F:\\godot\\ga-rts\\assets\\sky\\si_sbg_0110.png",
+      "width": 2048,
+      "height": 1024,
+      "layers_used": [
+        "si_sbg_0100.agi",
+        "si_sbo_0000.agi",
+        "si_sbg_0102.agi",
+        "si_sbg_0103.agi",
+        "si_sun_0110.agi",
+        "si_sor_0100.agi",
+        "si_sor_0100.agi",
+        "si_sbo_0100.agi"
+      ],
+      "layers_skipped": [
+        "si_abg_0000.agi"
+      ],
+      "sphere_radius": 53092.3,
+      "bytes": 1063735
+    },
+    {
+      "name": "si_sbg_0120",
+      "source": "F:\\godot\\model\\ek\\axo\\stage\\010100\\si_sbg_0120",
+      "output": "F:\\godot\\ga-rts\\assets\\sky\\si_sbg_0120.png",
+      "width": 2048,
+      "height": 1024,
+      "layers_used": [
+        "si_sbg_0102.agi",
+        "si_sor_0120.agi",
+        "si_sor_0120.agi",
+        "si_sbs_0120.agi",
+        "si_sbg_0100.agi",
+        "si_sbo_0000.agi",
+        "si_sun_0120.agi",
+        "si_sbs_0121.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi"
+      ],
+      "layers_skipped": [
+        "si_abg_0000.agi"
+      ],
+      "sphere_radius": 106557.7,
+      "bytes": 1739272
+    },
+    {
+      "name": "si_sbg_0310",
+      "source": "F:\\godot\\model\\ek\\axo\\stage\\030100\\si_sbg_0310",
+      "output": "F:\\godot\\ga-rts\\assets\\sky\\si_sbg_0310.png",
+      "width": 2048,
+      "height": 1024,
+      "layers_used": [
+        "si_sbg_0100.agi",
+        "si_sbg_0105.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0104.agi",
+        "si_sbg_0103.agi",
+        "si_sbs_0400.agi",
+        "si_sbo_0000.agi",
+        "si_sbg_0102.agi"
+      ],
+      "layers_skipped": [
+        "si_abg_0000.agi"
+      ],
+      "sphere_radius": 53092.3,
+      "bytes": 1844739
+    },
+    {
+      "name": "si_sbg_0410",
+      "source": "F:\\godot\\model\\ek\\axo\\stage\\040100\\si_sbg_0410",
+      "output": "F:\\godot\\ga-rts\\assets\\sky\\si_sbg_0410.png",
+      "width": 2048,
+      "height": 1024,
+      "layers_used": [
+        "si_sbg_0104.agi",
+        "si_sbo_0000.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0100.agi",
+        "si_sbg_0104.agi",
+        "si_sbg_0102.agi",
+        "si_sbg_0105.agi",
+        "si_sun_0410.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0105.agi"
+      ],
+      "layers_skipped": [
+        "si_abg_0000.agi",
+        "si_abg_0000.agi"
+      ],
+      "sphere_radius": 56218.6,
+      "bytes": 2078775
+    },
+    {
+      "name": "si_sbg_0510",
+      "source": "F:\\godot\\model\\ek\\axo\\stage\\050100\\si_sbg_0510",
+      "output": "F:\\godot\\ga-rts\\assets\\sky\\si_sbg_0510.png",
+      "width": 2048,
+      "height": 1024,
+      "layers_used": [
+        "si_sbg_0102.agi",
+        "si_sbg_0103.agi",
+        "si_sor_0719.agi",
+        "si_sbg_0100.agi",
+        "si_sbs_0710.agi",
+        "si_sbs_0701.agi",
+        "si_sbo_0000.agi",
+        "si_sbg_0104.agi",
+        "si_sun_0710.agi"
+      ],
+      "layers_skipped": [
+        "si_abg_0000.agi"
+      ],
+      "sphere_radius": 55942.3,
+      "bytes": 2794722
+    },
+    {
+      "name": "si_sbg_0610",
+      "source": "F:\\godot\\model\\ek\\axo\\stage\\060100\\si_sbg_0610",
+      "output": "F:\\godot\\ga-rts\\assets\\sky\\si_sbg_0610.png",
+      "width": 2048,
+      "height": 1024,
+      "layers_used": [
+        "si_sbg_0100.agi",
+        "si_sbo_0000.agi",
+        "si_sbg_0102.agi",
+        "si_sbs_0500.agi",
+        "si_sbg_0103.agi",
+        "si_sun_0500.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0104.agi"
+      ],
+      "layers_skipped": [
+        "si_abg_0000.agi"
+      ],
+      "sphere_radius": 52801.4,
+      "bytes": 2058212
+    },
+    {
+      "name": "si_sbg_0710",
+      "source": "F:\\godot\\model\\ek\\axo\\stage\\070100\\si_sbg_0710",
+      "output": "F:\\godot\\ga-rts\\assets\\sky\\si_sbg_0710.png",
+      "width": 2048,
+      "height": 1024,
+      "layers_used": [
+        "si_sbs_0711.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0105.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi"
+      ],
+      "layers_skipped": [
+        "si_abg_0000.agi",
+        "si_abg_0000.agi"
+      ],
+      "sphere_radius": 58655.2,
+      "bytes": 1450689
+    },
+    {
+      "name": "si_sbg_0810",
+      "source": "F:\\godot\\model\\ek\\axo\\stage\\080100\\si_sbg_0810",
+      "output": "F:\\godot\\ga-rts\\assets\\sky\\si_sbg_0810.png",
+      "width": 2048,
+      "height": 1024,
+      "layers_used": [
+        "si_sbg_0100.agi",
+        "si_sun_0410.agi",
+        "si_sbo_0000.agi",
+        "si_sbg_0102.agi",
+        "si_sbg_0105.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0105.agi"
+      ],
+      "layers_skipped": [
+        "si_abg_0000.agi"
+      ],
+      "sphere_radius": 53419.3,
+      "bytes": 1791864
+    },
+    {
+      "name": "si_sbg_0820",
+      "source": "F:\\godot\\model\\ek\\axo\\stage\\080200\\si_sbg_0820",
+      "output": "F:\\godot\\ga-rts\\assets\\sky\\si_sbg_0820.png",
+      "width": 2048,
+      "height": 1024,
+      "layers_used": [
+        "si_sbg_0100.agi",
+        "si_sun_0410.agi",
+        "si_sbo_0000.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0105.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0105.agi"
+      ],
+      "layers_skipped": [
+        "si_abg_0000.agi"
+      ],
+      "sphere_radius": 55659.1,
+      "bytes": 1646227
+    },
+    {
+      "name": "si_sbg_0920",
+      "source": "F:\\godot\\model\\ek\\axo\\stage\\100100\\si_sbg_0920",
+      "output": "F:\\godot\\ga-rts\\assets\\sky\\si_sbg_0920.png",
+      "width": 2048,
+      "height": 1024,
+      "layers_used": [
+        "si_sbg_0100.agi",
+        "si_sun_0920.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sor_0100.agi",
+        "si_sbg_0104.agi",
+        "si_sbg_0102.agi",
+        "si_sbo_0000.agi"
+      ],
+      "layers_skipped": [
+        "si_abg_0000.agi"
+      ],
+      "sphere_radius": 53092.3,
+      "bytes": 2815551
+    },
+    {
+      "name": "si_sbg_1110",
+      "source": "F:\\godot\\model\\ek\\axo\\stage\\110100\\si_sbg_1110",
+      "output": "F:\\godot\\ga-rts\\assets\\sky\\si_sbg_1110.png",
+      "width": 2048,
+      "height": 1024,
+      "layers_used": [
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sob_1110.agi",
+        "si_sob_1111.agi",
+        "si_sob_1112.agi",
+        "si_sob_1113.agi"
+      ],
+      "layers_skipped": [
+        "si_abg_0000.agi",
+        "si_abg_0000.agi"
+      ],
+      "sphere_radius": 72237.2,
+      "bytes": 1679800
+    },
+    {
+      "name": "si_sbg_1120",
+      "source": "F:\\godot\\model\\ek\\axo\\stage\\110200\\si_sbg_1120",
+      "output": "F:\\godot\\ga-rts\\assets\\sky\\si_sbg_1120.png",
+      "width": 2048,
+      "height": 1024,
+      "layers_used": [
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi"
+      ],
+      "layers_skipped": [
+        "si_abg_0000.agi"
+      ],
+      "sphere_radius": 57858.8,
+      "bytes": 1478666
+    },
+    {
+      "name": "si_sbg_1330",
+      "source": "F:\\godot\\model\\ek\\axo\\stage\\130300\\si_sbg_1330",
+      "output": "F:\\godot\\ga-rts\\assets\\sky\\si_sbg_1330.png",
+      "width": 2048,
+      "height": 1024,
+      "layers_used": [
+        "si_sbg_0100.agi",
+        "si_sor_0100.agi",
+        "si_sbg_0104.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0104.agi",
+        "si_sbg_0103.agi",
+        "si_sbs_0700.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0102.agi",
+        "si_sbo_0000.agi",
+        "si_sun_0700.agi",
+        "si_sbg_0103.agi"
+      ],
+      "layers_skipped": [
+        "si_abg_0000.agi"
+      ],
+      "sphere_radius": 49648.1,
+      "bytes": 2093396
+    },
+    {
+      "name": "si_sbg_1340",
+      "source": "F:\\godot\\model\\ek\\axo\\stage\\130400\\si_sbg_1340",
+      "output": "F:\\godot\\ga-rts\\assets\\sky\\si_sbg_1340.png",
+      "width": 2048,
+      "height": 1024,
+      "layers_used": [
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi"
+      ],
+      "layers_skipped": [
+        "si_abg_0000.agi"
+      ],
+      "sphere_radius": 57858.8,
+      "bytes": 1478666
+    },
+    {
+      "name": "si_sbg_1350",
+      "source": "F:\\godot\\model\\ek\\axo\\stage\\130500\\si_sbg_1350",
+      "output": "F:\\godot\\ga-rts\\assets\\sky\\si_sbg_1350.png",
+      "width": 2048,
+      "height": 1024,
+      "layers_used": [
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi",
+        "si_sbg_0103.agi"
+      ],
+      "layers_skipped": [
+        "si_abg_0000.agi"
+      ],
+      "sphere_radius": 57858.8,
+      "bytes": 1478666
+    }
+  ]
+}
