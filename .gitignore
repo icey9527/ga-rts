@@ -42,6 +42,9 @@ desktop.ini
 # 预览渲染产物（开发期检查用，可随时重跑）
 /tools/pipeline/model-pipeline/preview/
 
+# 特效管线中转出来的带 alpha 贴图（已内嵌进 glb，不必入库）
+/tools/pipeline/model-pipeline/.effects_tex/
+
 # Godot 导入 glb 时从内嵌贴图解出的同目录 png（可从 glb 再生，不入库）
 /assets/models/**/*.png
 /assets/models/**/*.png.import
