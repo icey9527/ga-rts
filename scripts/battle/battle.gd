@@ -44,6 +44,10 @@ const INFLATED_COLOR := Color(0.35, 0.75, 1.0, 0.10)
 
 ## 模拟中枢（RefCounted：不占节点、可无头单测）
 var _session: BattleSession = null
+## 最小交战 AI（S4 前的占位实现）：只驱动敌方队伍，否则主场景里两支舰队一直对望
+var _ai: SimpleAI = null
+## AI 控制的队伍号（玩家指挥 0）
+const AI_TEAM := 1
 ## 本局地图数据（L0，来自 Registry.map(MAP_ID)；加载失败时为 null，世界为空）
 var _map: MapDef = null
 ## unit.id → UnitView（表现层索引，仅本文件持有）
@@ -84,6 +88,10 @@ func _ready() -> void:
 	# 选择候选 = Unit 数据对象（ViewProjection 认 position 属性），
 	# 于是选中列表里拿到的是模拟对象本身，CommandBus 的目标也就直接是 Unit。
 	input_router.set_candidates(_session.units())
+
+	# 最小交战 AI：只控敌方（team 1）。玩家指挥 team 0。
+	# 没有它的话，不给命令就永远不会打起来 —— S3 结束时的真实状态。
+	_ai = SimpleAI.new(AI_TEAM)
 
 	# 单一更新驱动：Simulation 每 tick 发一次，本文件只转发给 session（硬规则 2）
 	if not Simulation.ticked.is_connected(_on_ticked):
@@ -250,6 +258,10 @@ func unit_view(unit_id: int) -> UnitView:
 func _on_ticked(_tick_index: int) -> void:
 	if _session == null:
 		return
+	# AI 先下令、再推进：命令入队后由 tick 第 1 步统一执行（硬规则 2），
+	# 于是 AI 与玩家命令走完全相同的路径与时序，不存在两条更新链路。
+	if _ai != null:
+		_ai.tick(_session, Simulation.TICK_SECONDS)
 	_session.tick(Simulation.TICK_SECONDS)
 
 

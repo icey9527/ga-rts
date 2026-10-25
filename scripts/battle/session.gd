@@ -53,6 +53,8 @@ const CMD_STOP := &"cmd_stop"
 const CMD_SET_LAYER := &"cmd_set_layer"
 ## 改阵型（T-3.3）。会话级命令：options.formation = Formation.Kind
 const CMD_SET_FORMATION := &"cmd_set_formation"
+## 明确攻击某个单位（右键点敌人）。options.target = 敌方 Unit
+const CMD_ATTACK := &"cmd_attack"
 
 ## 默认高度层（ADR-0003 L1 = 0 m）。本卡所有单位都在 L1；切层归 S2 的高度指令。
 const LAYER_CRUISE := 0.0
@@ -65,6 +67,8 @@ const LAYER_DEFAULT := 1
 const OPTION_LAYER := &"layer"
 ## 改阵型命令的 options 键
 const OPTION_FORMATION := &"formation"
+## 明确攻击目标的 options 键（值是单位对象，不是 id）
+const OPTION_ATTACK_TARGET := &"target"
 
 ## 命令里世界落点的键名（InputRouter._point_options 的约定）
 const OPTION_POINT := "point"
@@ -499,6 +503,27 @@ func handle_command(cmd: Dictionary) -> void:
 			for unit in targets:
 				unit.attack_move = false
 				unit.clear_route()
+		CMD_ATTACK:
+			# 右键点敌人。与 CMD_ATTACK_MOVE 的区别：目标是**具体单位**而不是落点。
+			# 落点式的攻击移动在敌人移动后会追到一个空处；这里直接把编队共享目标钉死，
+			# 后面由 _step_pursuit 负责“打不到就压上去”。
+			var enemy: Variant = options.get(OPTION_ATTACK_TARGET, null)
+			var enemy_unit: Unit = enemy as Unit if enemy is Unit else null
+			if enemy_unit == null or not enemy_unit.alive or not _units.has(enemy_unit):
+				push_error("[BattleSession] cmd_attack 缺少有效目标单位，忽略")
+				_ignored_commands += 1
+				return
+			var pinned := {}
+			for unit in targets:
+				unit.attack_move = true
+				for squad in _squads:
+					if not pinned.has(squad.id) and squad.has_unit(unit):
+						squad.target_id = enemy_unit.id
+						pinned[squad.id] = true
+			if targets.size() > 1:
+				_assign_formation_routes(targets, enemy_unit.position, true)
+			else:
+				_assign_route(targets[0], enemy_unit.position)
 		_:
 			# 攻击 / 改高度层等：S1 不实现，记数不报错（命令本身是合法的，只是还没有系统接）
 			_ignored_commands += 1

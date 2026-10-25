@@ -561,12 +561,34 @@ func _handle_right_click(screen_pos: Vector2) -> void:
 	_issue(CMD_MOVE, _point_options(screen_pos))
 
 
-## 右键点了敌方单位 → 攻击（docs/controls.md 命令表）。敌方判定问候选自己，
-## 本层不猜队伍关系（单位/队伍数据归 L1/L0）。
+## 右键点了敌方单位 → 攻击（docs/controls.md 命令表）。
+##
+## **不能问候选自己**：Unit 上没有 is_hostile() 方法（"对谁而言是敌人"根本没法自答）。
+## 原来那句 has_method 检查永远为假，于是右键点敌人也只发移动命令 ——
+## 表现就是“能选中、能下令、就是永远打不起来”。
+## 正确口径：敌我关系只能由「选中单位 vs 候选单位」这一对决定，读双方的 team 字段，
+## 本层仍然不硬编码任何队伍号（队伍数据依旧归 L1/L0）。
 func _is_hostile(candidate: Variant) -> bool:
-	if candidate is Object and (candidate as Object).has_method(&"is_hostile"):
-		return bool((candidate as Object).call(&"is_hostile"))
-	return false
+	if _selection.is_empty():
+		return false
+	var my_team := _team_of(_selection[0])
+	var other_team := _team_of(candidate)
+	if my_team < 0 or other_team < 0:
+		return false
+	return my_team != other_team
+
+
+## 取对象的队伍号。没有 team 字段的候选（地形 / 装饰 / 落点）返回 -1。
+func _team_of(obj: Variant) -> int:
+	if not (obj is Object):
+		return -1
+	var value: Variant = (obj as Object).get(&"team")
+	if value == null:
+		return -1
+	var t := typeof(value)
+	if t != TYPE_INT and t != TYPE_FLOAT:
+		return -1
+	return int(value)
 
 
 # ---------------------------------------------------------------- 命令出口
