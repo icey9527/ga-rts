@@ -44,14 +44,18 @@
 | 缩放距离范围 | 30 m ~ 12 km |
 | 焦点可移动范围 | 战场范围 ±20% |
 
-## LOD 切换距离（相对相机）
+## 细节层次（只导入一份 SB 模型，见 ADR-0009）
 
-| 距离 | 使用 |
-| --- | --- |
-| < 800 m | LOD0 = SB 模型 |
-| 800 m ~ 2.5 km | LOD1 = U 模型 |
-| 2.5 km ~ 8 km | 单面 billboard |
-| > 8 km | 纯图标（UI 层绘制） |
+| 层级 | 手段 | 由谁决定 |
+| --- | --- | --- |
+| mesh LOD0~3 | 导入时 Godot 自动生成（ResourceImporterOBJ.generate_lods 默认 true） | 引擎 |
+| LOD 激进程度 | Viewport.mesh_lod_threshold（默认 1.0，越大越激进）；逐实例 GeometryInstance3D.lod_bias | 全局/逐模型 |
+| 远处剔除与淡出 | GeometryInstance3D.visibility_range_begin / end / fade_mode | 逐场景配置 |
+| 极远（约 > 8 km） | billboard（表现层，不占模型资源） | 表现层 |
+| 再远 | UI 图标 | UI 层 |
+
+**不产出 U/M/L 多套资源。** 只有一份 SB 模型，退化全部由引擎自动完成。
+唯一例外：需要独立旋转的炮塔部件必须保持独立 mesh，它各自生成 LOD。
 
 ## 天空
 

@@ -4,14 +4,15 @@
 
 ## 当前状态
 
-**S0 进行中** —— 地基与文档基线
+**S0 完成**（tag v0.0.1-s0 后续 tag v0.0.2-s0.1）—— 地基、文档基线、数据注册表设计、工具分层
+**S0.5 就绪待开工** —— Blender 4.5.0 已安装，可以写模型管线了
 
 ## 阶段计划
 
 | 阶段 | 目标 | 交付物 | 状态 |
 | --- | --- | --- | --- |
-| **S0** | 地基 | git 仓库、目录骨架、7 份 ADR、架构/尺度/操作/模型管线文档、模型清单 | 进行中 |
-| **S0.5** | 模型管线 | 装 Blender、batch_obj2glb.py、manifest.json、炮塔 pivot 归位、天空球烘焙 | 未开始 |
+| **S0** | 地基 | git 仓库、目录骨架、11 份 ADR、架构/尺度/操作/模型管线/数据注册表/工具分层文档、模型清单 | ✅ 完成 |
+| **S0.5** | 模型管线 | batch_obj2glb.py、天空烘焙、manifest.json、base.tbl 初版 | 待开工（Blender 已就位） |
 | **S1** | 竖切片 | project.godot 配置（autoload + input map）、最小 main.tscn、焦点轨道相机 + 2D 正交相机、ViewProjection、1 艘船能绕障碍飞到指定点 | 未开始 |
 | **S2** | 模拟闭环 | 状态机 / 索敌 / 开火 / 弹体 / 伤害 / 死亡，两军各 5 单位能打起来 | 未开始 |
 | **S3** | 高度与编队 | 分层高度切换、编队阵型、单位间分离力、仿真精度分层 | 未开始 |
@@ -29,6 +30,10 @@
 | 0005 | 模型管线：OBJ → GLB，只用 a 档 SB/U |
 | 0006 | 资源打包：可分 PCK + AssetCatalog 间接层 |
 | 0007 | Git 工作流、文档组织、署名约定 |
+| 0008 | 数据注册表：单一入口 base.tbl + 目录即 ID + 资产引用表 |
+| 0009 | 单一 SB 模型 + 引擎自动 LOD（不需要多份高低模资源） |
+| 0010 | 资源包用 .dat 后缀，可多包挂载 |
+| 0011 | 工具与游戏主代码分离，临时脚本单独目录 |
 
 ## S0 已完成
 
@@ -42,26 +47,42 @@
 - [x] docs/CONTRIBUTORS.md 署名约定
 - [x] docs/adr/0001~0007 决策记录
 - [x] tools/model-pipeline/inventory-scn1.csv 全量模型清单（575 个 obj 的顶点/面/材质数）
+- [x] docs/data-registry.md 数据注册表与资产引用设计（问题总纲）
+- [x] docs/tooling.md 工具与脚本分层规范
+- [x] docs/adr/0008~0011 四份新决策记录
+- [x] 本地 Godot 4.7.2 API 文档导出（810 个 XML，用于校验 API 而非靠记忆）
+- [x] .gitignore 新增 tools/temp/
 
-## S0 未完成（阻塞在外部依赖）
+## S0 环境确认
 
-- [ ] 安装 Blender（本机未装，需手动下载安装包）
+| 工具 | 状态 |
+| --- | --- |
+| Blender | ✅ 4.5.0 —— C:\Program Files\Blender Foundation\Blender 4.5\blender.exe |
+| Godot | ✅ 4.7.2 —— F:\godot\Godot_v4.7.2-stable_win64.exe |
+| Python / gcc / dotnet / git-lfs | ✅ 均可用 |
+| 本地 Godot API 文档 | ✅ %TEMP%\godot-docs-4.7\doc\classes |
+
+## S0 剩余（需 S1 骨架配合）
+
 - [ ] project.godot 的 autoload 与 input map（依赖 S1 的脚本骨架，避免引用不存在的路径）
 - [ ] 主场景 main.tscn（依赖 S1）
+- [ ] `load_resource_pack` 对 .dat 后缀的冒烟测试（ADR-0010 待验证项）
 
 ## 下一步（S0.5 详细清单）
 
-1. 安装 Blender（用户手动下载 LTS 版）
-2. 编写 tools/model-pipeline/batch_obj2glb.py：
+1. ~~安装 Blender~~ ✅ 4.5.0
+2. 编写 tools/pipeline/model-pipeline/batch_obj2glb.py：
    - 输入：F:/godot/model/el/scn1 下 a 档目录 + 选定 ob + 选定 oe
-   - 处理：合并部件、pivot 归位、朝向统一 -Z、材质映射、LOD 分组
-   - 输出：assets/models/{ships,objects,effects}/<id>/<id>_lod{0,1}.glb
-   - 生成 tools/model-pipeline/manifest.json
+   - 处理：合并部件、pivot 归位、朝向统一 -Z、材质映射、**按材质合并成 1~2 个 surface**（保证自动 LOD 一致性）
+   - 输出：assets/models/{ships,objects,effects}/<id>/<id>.glb（**无 LOD 变体**）
+   - 生成 tools/pipeline/model-pipeline/manifest.json
 3. 天空球烘焙：ek/axo/stage/*/si_sbg_* → equirectangular 全景 → assets/sky/
-4. 用 Godot 打开验证：随便拖一艘进场景，检查朝向、尺寸、材质、pivot
+4. 写 content/base.tbl + content/assets/assets.tbl 初版
+5. 用 Godot 打开验证：拖一艘进场景，检查朝向、尺寸、材质、pivot、自动 LOD 是否生效
 
-## 待用户拍板（不阻塞 S0）
+## 待用户拍板（不阻塞）
 
 - 战争迷雾是否引入（原 2D 版无）
 - 损伤分段模型（_crash_S0~S4）是否启用
 - 小飞机是否走 MultiMesh 集群渲染
+- TBL 的 `base` 继承机制是否现在就要（P2）

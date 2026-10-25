@@ -78,17 +78,28 @@ F:/godot/model/
 4. **MultiMeshInstance3D**：小飞机集群（走同一条航线的那种）
 5. **视锥剔除**：Godot 自动，不用写代码
 
-## 五、档位使用策略（已定）
+## 五、档位使用策略（已定，见 ADR-0009）
 
-| 用途 | 用哪档 |
+**只导入 SB 一份资源，不产出 U/M/L 多套变体。**
+
+| 项 | 做法 |
 | --- | --- |
-| LOD0（相机 < 800 m） | SB_ 模型 |
-| LOD1（800 m ~ 2.5 km） | a 档内的 U 模型 |
-| LOD2（2.5 ~ 8 km） | 单面 billboard |
-| 极远（> 8 km） | UI 层图标 |
-| **b / c 档** | **不使用** |
+| 模型 | 只取 a 档里的 SB_（31 个文件） |
+| 细节退化 | Godot 导入时自动生成 4 级 mesh LOD（generate_lods 默认 true） |
+| 全局质量 | Viewport.mesh_lod_threshold（默认 1.0，远距离掉帧就往上调） |
+| 逐模型微调 | GeometryInstance3D.lod_bias |
+| 远处剔除 | visibility_range_begin / end / fade_mode |
+| 极远 | billboard，再远用 UI 图标（表现层，不占模型资源） |
+| **b / c 档** | **不使用，管线直接跳过** |
 
-注意：a 档内并非每艘都有 SB（ou20a / ou21a / ou22a 只有 U）。这类船只有单档模型，直接当 LOD0 用。
+例外：a 档内并非每艘都有 SB（ou20a / ou21a / ou22a 只有 U）。这类船只有单档模型，直接当唯一档用。
+
+### 合并策略的取舍
+
+一个 glb 里若含多个 mesh 子节点，每个 mesh **独立**生成 LOD，各部件消失时机不一致（远景会看到船体没了但炮管还在）。所以：
+
+- **按材质合并成 1~2 个 surface 再导出** → LOD 一致，顺带压 drawcall，这是主线做法
+- **需要独立旋转的炮塔部件保持独立 mesh** → 接受各自 LOD 时机（炮塔体量小，影响可忽略）
 
 ## 六、转换流程（OBJ → GLB）
 
@@ -105,19 +116,18 @@ F:/godot/model/
 ### 步骤
 
 1. **扫描**（已完成）：tools/model-pipeline/inventory-scn1.csv
-2. **筛选**：只取 a 档目录 + SB / U 模型 + ob 物体 + 选定特效
-3. **Blender headless 批处理**（待 Blender 安装后执行）：
+2. **筛选**：只取 a 档目录 + **SB 模型**（+ ob 物体 + 选定特效），b/c 档跳过
+3. **Blender headless 批处理**（Blender 4.5.0 已就位：C:\Program Files\Blender Foundation\Blender 4.5\blender.exe）：
    - 导入 OBJ（统一 up 轴与缩放，1 Blender unit = 1 m）
    - 部件合并 / 重命名（ounitid_partname）
    - 炮塔类部件的 pivot 移到自身包围盒中心
    - 朝向统一为 -Z 前方
    - MTL → Principled BSDF（_0 → Base Color，_0_lum → Emission，_0_bmp → Normal，_0_ref → Metallic/Roughness 参考）
    - 导出 .glb
-4. **产物目录**：
+4. **产物目录**（一个 ID 一个目录，一个 glb，无 LOD 变体）：
    ```
-   assets/models/ships/ou134/ou134_lod0.glb   (SB)
-   assets/models/ships/ou134/ou134_lod1.glb   (U)
-   assets/models/objects/ob1501/ob1501_lod0.glb
+   assets/models/ships/ou134/ou134.glb
+   assets/models/objects/ob1501/ob1501.glb
    assets/models/effects/...
    ```
 5. **清单**：tools/model-pipeline/manifest.json（逻辑 ID → 文件 / LOD 组 / 尺寸 / 材质数 / pivot 表），入库

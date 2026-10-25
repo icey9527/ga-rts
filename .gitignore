@@ -31,5 +31,7 @@ desktop.ini
 .pi/
 
 # ---------- 本地临时 ----------
+# 临时脚本目录（见 docs/tooling.md，不入库、随手删）
+/tools/temp/
 /tools/model-pipeline/inventory-*.csv
 !/tools/model-pipeline/inventory-manifest.json

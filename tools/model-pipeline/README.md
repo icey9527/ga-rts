@@ -20,11 +20,11 @@
 - Godot 4.7（已有：F:/godot/Godot_v4.7.2-stable_win64.exe）
 - 无需其他工具；node / git-lfs 已就绪备用
 
-## 筛选规则（已定，见 ADR-0005）
+## 筛选规则（已定，见 ADR-0005 / ADR-0009）
 
 - 只取 `el/scn1` 下 **a 档**目录（`ouXXa` / `obXXXXa`）
-- 只取 `SB_*`（LOD0）与 `*U*`（LOD1）模型
-- **b / c 档一律跳过**
+- 只取 **`SB_*`** 模型（唯一的模型版本，细节退化由引擎自动 LOD 完成）
+- **b / c 档一律跳过**；`*U*` 仅在无 SB 时作为兑底
 - 跳过 `ball/bounding`（包围球，非可见）、`compass_*`（HUD 用，单独处理）
 - 特效（oe / si_e*）与天空（si_sbg）走独立管线，不与舰船混
 
@@ -32,22 +32,20 @@
 
 ```
 F:/godot/model/el/scn1/ou134a/SB_ou134E_body/SB_ou134E_body.obj
-        └─► assets/models/ships/ou134/ou134_lod0.glb
-
-F:/godot/model/el/scn1/ou134a/ou134U_body/ou134U_body.obj
-        └─► assets/models/ships/ou134/ou134_lod1.glb
+        └─► assets/models/ships/ou134/ou134.glb
 
 F:/godot/model/el/scn1/ob1501a/SB_ob1501A/SB_ob1501A.obj
-        └─► assets/models/objects/ob1501/ob1501_lod0.glb
+        └─► assets/models/objects/ob1501/ob1501.glb
 ```
 
 ## 命名规范（产物）
 
 - 逻辑 ID 全部小写：`ou134` / `ob1501`
-- 一个逻辑 ID 一个目录
-- LOD 后缀 `_lod0`（SB）/ `_lod1`（U）
+- 一个逻辑 ID 一个目录，一个 glb
+- **无 LOD 后缀**（只有一份模型，退化交给引擎自动 LOD）
 - 部件作为子节点保留原名（`body` / `cannon` / `aag` / `missileA` / `laser` / `hou`）
 - 炮塔类部件的 pivot 移到自身包围盒中心，命名前缀 `turret_`
+- 逻辑 ID 到文件的映射写进 `content/assets/assets.tbl`，代码里不出现路径（见 docs/data-registry.md）
 
 ## 炮塔 pivot 识别规则
 
