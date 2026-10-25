@@ -20,19 +20,7 @@
 
 ## 进行中
 
-### T-0.5.1 特效管线（S0.5 收尾）
-
-- **交给**：worker
-- **输入**：`F:/godot/model/el/scn0/oe*`（76 个）、`F:/godot/model/ek/axo/effects/si_e*`（约 130 个）
-- **产出**：
-  - `tools/pipeline/model-pipeline/batch_effects.py`
-  - `assets/models/effects/<id>/<id>.glb`
-  - `content/assets/assets.tbl` 补 `[vfx]` 节
-- **约束**：特效模型多为贴图公告板，不要当实体网格处理；带 alpha 的按透明材质导出
-- **验收**：
-  1. 主代理跑转换，统计产出数量与体积
-  2. 抽样 2 个在 `scenes/dev/verify_assets.tscn` 里渲染，**由 scout 看图**确认效果
-  3. `verify_registry.tscn` 资产数增加且错误数为 0
+（无 —— S0.5 已完成，待开 S1）
 
 ---
 
@@ -107,3 +95,16 @@
 | 天空烘焙 15 套 equirect | v0.2.0-s0.5 |
 | Godot 内资产验证 | v0.3.0-s0.5 |
 | 数据注册表（TBL 解析 + 校验） | v0.4.0-s0.5 |
+| 特效管线 208 个公告板 glb | v0.5.0-s0.5 |
+
+## 管线坑（攒下来，别再踩）
+
+| 坑 | 说明 |
+| --- | --- |
+| 材质漏接 Material Output | 节点树没输出，渲染全黑且不报错 |
+| `mesh.materials.clear()` | 会重置所有面的 material_index，必须先缓存后写回 |
+| Blender 相对路径渲染 | 写到进程工作目录（实测 `C:\tools`），必须 resolve 成绝对路径 |
+| 天空/特效贴图无 alpha | 黑色区域才是透明，透明度需从亮度推导 |
+| Blender 导出器表达力不足 | “贴图提供 alpha 但 RGB 乘 0” 无法直接导出，需补 GLB JSON chunk |
+| Godot 导入不全 | 首次可能只导一部分且不自动补扫，需删 filesystem cache 重扫；易误判为管线漏产 |
+| 断言结构化数据 | 用正则匹配 JSON 原文会因空格失效，应解析后断言 |
