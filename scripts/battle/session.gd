@@ -126,9 +126,19 @@ var _shots_spawned := 0
 const PURSUIT_INTERVAL := 0.5
 ## 已经能打到就不用追：留 10% 余量，避开在射程边缘反复起步/刹车
 const PURSUIT_SLACK := 0.9
+## 航线终点偏离目标超过这个距离（米）就重算。
+##
+## 不能拿 has_active_waypoint() 当闸门（T-3.2 踩出来的）：
+## 两艘同队船共享同一航线终点时，分离系统把它们推开 67 m，而到站半径只有 2 m —
+## 几何上不可能同时满足，于是它们绕着终点转圈，has_active_waypoint() 永远为真，
+## 追击一次都不会触发（实测 pursuits=0，双方对望 230 秒）。
+## 改成看“航线还指不指着目标”：终点漂移超过这个值才重拉。
+const PURSUIT_RETARGET_DISTANCE := 200.0
 ## unit_id -> 剩余冷却秒数
 var _pursuit_cooldown: Dictionary = {}
 var _pursuits := 0
+## 同队分离累计推开的对数（T-3.2，诊断用）
+var _separations := 0
 ## 累计命中结算次数（T-2.3）
 var _hits_applied := 0
 
@@ -500,6 +510,7 @@ func tick(dt: float) -> void:
 	_step_projectiles(dt)    # 5/6 弹体推进 + 扫掠命中 + 伤害结算（ADR-0013）
 	_step_pursuit(dt)        # 3c+ 追击：打不到就压上去（否则滞回带里永久卡死）
 	_step_unit_movement(dt)  # 3c（含每单位 reset_accumulators）
+	_step_separation(dt)     # 3d 同队分离（只写 accum，不碰 position）
 	_apply_accumulators()    # 4
 	_resolve_requests()      # 8
 
@@ -673,9 +684,6 @@ func _step_pursuit(dt: float) -> void:
 	for unit in _units:
 		if not unit.alive or not unit.attack_move:
 			continue
-		# 已在飞行中就不重算，避免每 0.5 秒把航线重置一次导致船原地画圈
-		if unit.has_active_waypoint():
-			continue
 		var cooldown := float(_pursuit_cooldown.get(unit.id, 0.0)) - dt
 		if cooldown > 0.0:
 			_pursuit_cooldown[unit.id] = cooldown
@@ -691,6 +699,11 @@ func _step_pursuit(dt: float) -> void:
 				fire_range = minf(fire_range, mount_range)
 		if unit.position.distance_to(target.position) <= fire_range * PURSUIT_SLACK:
 			continue
+		# 航线还基本指向目标 → 不重复拉（避免每 0.5 s 把航线重置一次导致原地画圈）
+		if unit.has_active_waypoint() and not unit.route.is_empty():
+			var destination := unit.route[unit.route.size() - 1]
+			if destination.distance_to(target.position) <= PURSUIT_RETARGET_DISTANCE:
+				continue
 		_pursuit_cooldown[unit.id] = PURSUIT_INTERVAL
 		_pursuits += 1
 		_assign_route(unit, target.position)
@@ -699,6 +712,13 @@ func _step_pursuit(dt: float) -> void:
 ## 把本 tick 的只读视图刷进 BattleContext（AI 只看它，不看本类）
 func _sync_context() -> void:
 	_context.sync(_units, _squads, _tick_index)
+
+
+## 3d 同队单位分离（T-3.2）：多艘船追同一个目标会收敛到同一点，视觉上叠成一团。
+## 必须在 _step_unit_movement 之后（那时 accum_position 已包含本 tick 位移）、
+## 在 _apply_accumulators 之前（分离量和其他位移一起从唯一入口落到 position）。
+func _step_separation(dt: float) -> void:
+	_separations += UnitSeparation.apply(_units, dt)
 
 
 func _apply_accumulators() -> void:
@@ -836,6 +856,7 @@ func stats() -> Dictionary:
 		"shots_spawned": _shots_spawned,
 		"hits_applied": _hits_applied,
 		"pursuits": _pursuits,
+		"separations": _separations,
 		"spawns_settled": _spawns_settled,
 		"deaths_settled": _deaths_settled,
 		"pending_spawns": _spawn_requests.size(),

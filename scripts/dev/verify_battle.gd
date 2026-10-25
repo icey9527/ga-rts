@@ -236,9 +236,25 @@ func _dump_stall(session: BattleSession) -> void:
 			u.id, u.def_id, u.team, UnitStates.state_name(u.state), u.target_id, tgt_team,
 			dist, str(dist >= 0.0 and dist <= u.weapon_range),
 			u.position.x, u.position.y, u.position.z])
+		_info("        追击资格 attack_move=%s 有航线=%s route=%d 点 index=%d 完成=%s 开火距=%.0f" % [
+			str(u.attack_move), str(u.has_active_waypoint()), u.route.size(),
+			u.route_index, str(u.is_route_finished()), _fire_range(u)])
 	var st := session.stats()
-	_info("    汇总：shots_spawned=%d hits_applied=%d states=%s" % [
-		int(st["shots_spawned"]), int(st["hits_applied"]), str(st["states"])])
+	_info("    汇总：shots=%d hits=%d pursuits=%d route_req=%d routes_assigned=%d unreachable=%d sep=%d" % [
+		int(st["shots_spawned"]), int(st["hits_applied"]), int(st["pursuits"]),
+		int(st["route_requests"]), int(st["routes_assigned"]),
+		int(st["unreachable"]), int(st["separations"])])
+	_info("    状态分布：%s" % str(st["states"]))
+
+
+## 与 _step_pursuit 内部一致的开火距离口径
+func _fire_range(u: Unit) -> float:
+	var r := u.weapon_range
+	if u.weapons != null:
+		var m := u.weapons.max_range()
+		if m > 0.0:
+			r = minf(r, m)
+	return r
 
 
 ## 一字横阵：重巡居中压前，4 艘突击舰分列两侧、略靠后。
