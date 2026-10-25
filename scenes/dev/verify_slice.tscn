@@ -1,0 +1,20 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/dev/verify_slice.gd" id="1_verify"]
+[ext_resource type="PackedScene" path="res://scenes/camera/rts_camera.tscn" id="2_camera"]
+[ext_resource type="Script" path="res://scripts/input/input_router.gd" id="3_input"]
+
+[node name="VerifySlice" type="Node3D"]
+script = ExtResource("1_verify")
+
+[node name="CameraRig" parent="." instance=ExtResource("2_camera")]
+accept_input = false
+
+[node name="Cam3D" parent="CameraRig"]
+accept_input = false
+
+[node name="Cam2D" parent="CameraRig"]
+accept_input = false
+
+[node name="InputRouter" type="Node" parent="."]
+script = ExtResource("3_input")
