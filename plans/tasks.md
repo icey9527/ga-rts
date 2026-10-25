@@ -61,7 +61,7 @@
   - 单测：直线可见返回单点；被挡返回绕行点；目标在膨胀圈内自动推到圈外
   - 实跑：一艘船绕一颗小行星飞到目标点
 
-### T-1.5 单位与移动
+### T-1.5 单位与移动 ✅
 
 - **交给**：worker
 - **产出**：`scripts/battle/unit/unit.gd`、`unit_movement.gd`、`unit_flight.gd`、`scenes/units/unit_base.tscn`
@@ -100,6 +100,7 @@
 | T-1.2 双相机（3D 焦点轨道 / 2D 正交 / CameraRig / ViewProjection），43 条断言全过 | v0.6.0-s1 |
 | T-1.3 输入路由 InputRouter（720 行）+ 接线，68 条断言全过 | v0.7.0-s1 |
 | T-1.4 寻路服务（可视图 + Dijkstra），39 条断言全过 | v0.7.0-s1 |
+| T-1.5 单位与移动（累加器 + 飞机式积分 + 分层高度 + 表现层），56 条断言全过 | v0.8.0-s1 |
 
 ## 管线坑（攒下来，别再踩）
 

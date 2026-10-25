@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/unit/unit_view.gd" id="1_view"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_placeholder"]
+size = Vector3(8, 8, 24)
+
+[node name="UnitBase" type="Node3D"]
+script = ExtResource("1_view")
+
+[node name="Model" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_placeholder")
