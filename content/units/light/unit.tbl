@@ -1,0 +1,31 @@
+; ============================================================
+; 轻型快攻机（light）
+;
+; 双舷齐发爆破，轻快灵活，靠数量与速度淹没对手。
+;
+; radius 来自 GLB 包围盒实测（ou09 最长边 8.22 m ÷ 2），
+; **不要手改** —— 寻路膨胀 / 单位分离 / 扫掠命中都吃这个值。
+; model 是逻辑名，解析走 content/assets/assets.tbl 的 [ship] 段；换模型只改那一行。
+; ============================================================
+[stats]
+name      = "轻型快攻机"
+speed     = 380
+max_hp    = 1600
+armor     = 8
+shield    = 560
+radar     = 2012
+cost      = 53
+acceleration    = 190.0
+deceleration    = 228.0
+turn_rate_yaw   = 45
+turn_rate_pitch = 30
+radius          = 4.11
+cruise_altitude = 80
+
+[assets]
+model     = ou09
+
+[weapon]
+main        = pulse_cannon
+count:int   = 2
+spread:vec3 = 1.5,0,0

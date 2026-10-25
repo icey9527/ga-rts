@@ -1,0 +1,31 @@
+; ============================================================
+; 多用途战机（fighter）
+;
+; 中距离主力。速度、火力、生存都均衡，编队的骨干。
+;
+; radius 来自 GLB 包围盒实测（ou05 最长边 63.62 m ÷ 2），
+; **不要手改** —— 寻路膨胀 / 单位分离 / 扫掠命中都吃这个值。
+; model 是逻辑名，解析走 content/assets/assets.tbl 的 [ship] 段；换模型只改那一行。
+; ============================================================
+[stats]
+name      = "多用途战机"
+speed     = 320
+max_hp    = 4200
+armor     = 21
+shield    = 1470
+radar     = 2095
+cost      = 140
+acceleration    = 160.0
+deceleration    = 192.0
+turn_rate_yaw   = 30
+turn_rate_pitch = 20
+radius          = 31.81
+cruise_altitude = 80
+
+[assets]
+model     = ou05
+
+[weapon]
+main        = pulse_cannon
+count:int   = 2
+spread:vec3 = 3,0,0

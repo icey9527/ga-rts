@@ -1,0 +1,31 @@
+; ============================================================
+; 重型护卫舰（heavy）
+;
+; 舰队抗线核心。慢但可靠，四门重炮压制中距离。
+;
+; radius 来自 GLB 包围盒实测（ou134 最长边 351.74 m ÷ 2），
+; **不要手改** —— 寻路膨胀 / 单位分离 / 扫掠命中都吃这个值。
+; model 是逻辑名，解析走 content/assets/assets.tbl 的 [ship] 段；换模型只改那一行。
+; ============================================================
+[stats]
+name      = "重型护卫舰"
+speed     = 180
+max_hp    = 12800
+armor     = 64
+shield    = 4480
+radar     = 2527
+cost      = 426
+acceleration    = 90.0
+deceleration    = 108.0
+turn_rate_yaw   = 12
+turn_rate_pitch = 6
+radius          = 175.87
+cruise_altitude = 0
+
+[assets]
+model     = ou134
+
+[weapon]
+main        = heavy_beam
+count:int   = 4
+spread:vec3 = 0,4.5,0

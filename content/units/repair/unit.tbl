@@ -1,0 +1,31 @@
+; ============================================================
+; 维修机（repair）
+;
+; 火力几乎为零，但能显著延长整支舰队的续航。
+;
+; radius 来自 GLB 包围盒实测（ou07 最长边 11.18 m ÷ 2），
+; **不要手改** —— 寻路膨胀 / 单位分离 / 扫掠命中都吃这个值。
+; model 是逻辑名，解析走 content/assets/assets.tbl 的 [ship] 段；换模型只改那一行。
+; ============================================================
+[stats]
+name      = "维修机"
+speed     = 300
+max_hp    = 1800
+armor     = 9
+shield    = 630
+radar     = 2016
+cost      = 60
+acceleration    = 150.0
+deceleration    = 180.0
+turn_rate_yaw   = 35
+turn_rate_pitch = 23
+radius          = 5.59
+cruise_altitude = 80
+
+[assets]
+model     = ou07
+
+[weapon]
+main        = repair_beam
+count:int   = 1
+spread:vec3 = 0,0,0

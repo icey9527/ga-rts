@@ -1,0 +1,31 @@
+; ============================================================
+; 散弹炮艇（gunship）
+;
+; 中近距离扇形覆盖，一轮打多个目标，克制密集编队。
+;
+; radius 来自 GLB 包围盒实测（ou107 最长边 60.64 m ÷ 2），
+; **不要手改** —— 寻路膨胀 / 单位分离 / 扫掠命中都吃这个值。
+; model 是逻辑名，解析走 content/assets/assets.tbl 的 [ship] 段；换模型只改那一行。
+; ============================================================
+[stats]
+name      = "散弹炮艇"
+speed     = 260
+max_hp    = 3600
+armor     = 18
+shield    = 1260
+radar     = 2090
+cost      = 120
+acceleration    = 130.0
+deceleration    = 156.0
+turn_rate_yaw   = 25
+turn_rate_pitch = 17
+radius          = 30.32
+cruise_altitude = 40
+
+[assets]
+model     = ou107
+
+[weapon]
+main        = shotgun
+count:int   = 2
+spread:vec3 = 4,0,0

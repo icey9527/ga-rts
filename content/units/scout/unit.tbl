@@ -1,0 +1,31 @@
+; ============================================================
+; 电子侦察机（scout）
+;
+; 战场的眼睛。速度快、装甲薄，负责前出探路与骚扰。
+;
+; radius 来自 GLB 包围盒实测（ou172 最长边 29.70 m ÷ 2），
+; **不要手改** —— 寻路膨胀 / 单位分离 / 扫掠命中都吃这个值。
+; model 是逻辑名，解析走 content/assets/assets.tbl 的 [ship] 段；换模型只改那一行。
+; ============================================================
+[stats]
+name      = "电子侦察机"
+speed     = 400
+max_hp    = 1700
+armor     = 8
+shield    = 595
+radar     = 2044
+cost      = 56
+acceleration    = 200.0
+deceleration    = 240.0
+turn_rate_yaw   = 40
+turn_rate_pitch = 26
+radius          = 14.85
+cruise_altitude = 80
+
+[assets]
+model     = ou172
+
+[weapon]
+main        = machine_gun
+count:int   = 2
+spread:vec3 = 2,0,0

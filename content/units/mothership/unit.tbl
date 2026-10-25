@@ -1,0 +1,31 @@
+; ============================================================
+; 指挥母舰（mothership）
+;
+; 战场核心。六门重炮，全场最高的血量与体积。
+;
+; radius 来自 GLB 包围盒实测（ou241 最长边 1123.52 m ÷ 2），
+; **不要手改** —— 寻路膨胀 / 单位分离 / 扫掠命中都吃这个值。
+; model 是逻辑名，解析走 content/assets/assets.tbl 的 [ship] 段；换模型只改那一行。
+; ============================================================
+[stats]
+name      = "指挥母舰"
+speed     = 90
+max_hp    = 26000
+armor     = 80
+shield    = 9100
+radar     = 3685
+cost      = 866
+acceleration    = 45.0
+deceleration    = 54.0
+turn_rate_yaw   = 4
+turn_rate_pitch = 3
+radius          = 561.76
+cruise_altitude = 0
+
+[assets]
+model     = ou241
+
+[weapon]
+main        = heavy_beam
+count:int   = 6
+spread:vec3 = 0,30,0

@@ -1,0 +1,31 @@
+; ============================================================
+; 高空轰炸机（bomber）
+;
+; 巡航高度最高，从上方压制密集舰群。
+;
+; radius 来自 GLB 包围盒实测（ou236 最长边 92.74 m ÷ 2），
+; **不要手改** —— 寻路膨胀 / 单位分离 / 扫掠命中都吃这个值。
+; model 是逻辑名，解析走 content/assets/assets.tbl 的 [ship] 段；换模型只改那一行。
+; ============================================================
+[stats]
+name      = "高空轰炸机"
+speed     = 300
+max_hp    = 6000
+armor     = 30
+shield    = 2100
+radar     = 2139
+cost      = 200
+acceleration    = 150.0
+deceleration    = 180.0
+turn_rate_yaw   = 15
+turn_rate_pitch = 10
+radius          = 46.37
+cruise_altitude = 100
+
+[assets]
+model     = ou236
+
+[weapon]
+main        = missile_pod
+count:int   = 2
+spread:vec3 = 6,0,0

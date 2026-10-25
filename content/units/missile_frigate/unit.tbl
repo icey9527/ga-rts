@@ -1,0 +1,31 @@
+; ============================================================
+; 导弹轰击舰（missile_frigate）
+;
+; 四座导弹巢持续压制，单发高伤，专治大型目标。
+;
+; radius 来自 GLB 包围盒实测（ou231 最长边 184.46 m ÷ 2），
+; **不要手改** —— 寻路膨胀 / 单位分离 / 扫掠命中都吃这个值。
+; model 是逻辑名，解析走 content/assets/assets.tbl 的 [ship] 段；换模型只改那一行。
+; ============================================================
+[stats]
+name      = "导弹轰击舰"
+speed     = 200
+max_hp    = 9000
+armor     = 45
+shield    = 3150
+radar     = 2276
+cost      = 300
+acceleration    = 100.0
+deceleration    = 120.0
+turn_rate_yaw   = 12
+turn_rate_pitch = 8
+radius          = 92.23
+cruise_altitude = 0
+
+[assets]
+model     = ou231
+
+[weapon]
+main        = missile_pod
+count:int   = 4
+spread:vec3 = 8,0,0

@@ -1,0 +1,31 @@
+; ============================================================
+; 远程狙击机（sniper）
+;
+; 全场最远的贯穿光束。只能打直线或静止目标，需要队友牵制。
+;
+; radius 来自 GLB 包围盒实测（ou06 最长边 52.92 m ÷ 2），
+; **不要手改** —— 寻路膨胀 / 单位分离 / 扫掠命中都吃这个值。
+; model 是逻辑名，解析走 content/assets/assets.tbl 的 [ship] 段；换模型只改那一行。
+; ============================================================
+[stats]
+name      = "远程狙击机"
+speed     = 240
+max_hp    = 3000
+armor     = 15
+shield    = 1050
+radar     = 2079
+cost      = 100
+acceleration    = 120.0
+deceleration    = 144.0
+turn_rate_yaw   = 20
+turn_rate_pitch = 13
+radius          = 26.46
+cruise_altitude = 40
+
+[assets]
+model     = ou06
+
+[weapon]
+main        = sniper_beam
+count:int   = 1
+spread:vec3 = 0,0,0

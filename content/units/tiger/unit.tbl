@@ -1,0 +1,31 @@
+; ============================================================
+; 虎式重击机（tiger）
+;
+; 重装突击。舰艏重撞配合重炮，用来撕开对方阵型。
+;
+; radius 来自 GLB 包围盒实测（ou232 最长边 317.70 m ÷ 2），
+; **不要手改** —— 寻路膨胀 / 单位分离 / 扫掠命中都吃这个值。
+; model 是逻辑名，解析走 content/assets/assets.tbl 的 [ship] 段；换模型只改那一行。
+; ============================================================
+[stats]
+name      = "虎式重击机"
+speed     = 280
+max_hp    = 12000
+armor     = 60
+shield    = 4200
+radar     = 2476
+cost      = 400
+acceleration    = 140.0
+deceleration    = 168.0
+turn_rate_yaw   = 14
+turn_rate_pitch = 9
+radius          = 158.85
+cruise_altitude = 40
+
+[assets]
+model     = ou232
+
+[weapon]
+main        = artillery_cannon
+count:int   = 2
+spread:vec3 = 10,0,0

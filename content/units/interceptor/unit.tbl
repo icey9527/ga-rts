@@ -1,0 +1,31 @@
+; ============================================================
+; 拦截机（interceptor）
+;
+; 舰队最快。专抓对方的轰炸机与侦察机，缠斗性能最好。
+;
+; radius 来自 GLB 包围盒实测（ou03 最长边 39.28 m ÷ 2），
+; **不要手改** —— 寻路膨胀 / 单位分离 / 扫掠命中都吃这个值。
+; model 是逻辑名，解析走 content/assets/assets.tbl 的 [ship] 段；换模型只改那一行。
+; ============================================================
+[stats]
+name      = "拦截机"
+speed     = 420
+max_hp    = 1900
+armor     = 9
+shield    = 665
+radar     = 2058
+cost      = 63
+acceleration    = 210.0
+deceleration    = 252.0
+turn_rate_yaw   = 50
+turn_rate_pitch = 33
+radius          = 19.64
+cruise_altitude = 80
+
+[assets]
+model     = ou03
+
+[weapon]
+main        = machine_gun
+count:int   = 2
+spread:vec3 = 3,0,0

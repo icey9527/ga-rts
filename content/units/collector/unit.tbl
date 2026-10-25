@@ -1,0 +1,31 @@
+; ============================================================
+; 资源采集站（collector）
+;
+; 几乎不动的后方设施。火力仅够自卫。
+;
+; radius 来自 GLB 包围盒实测（ou137 最长边 200.88 m ÷ 2），
+; **不要手改** —— 寻路膨胀 / 单位分离 / 扫掠命中都吃这个值。
+; model 是逻辑名，解析走 content/assets/assets.tbl 的 [ship] 段；换模型只改那一行。
+; ============================================================
+[stats]
+name      = "资源采集站"
+speed     = 60
+max_hp    = 8000
+armor     = 40
+shield    = 2800
+radar     = 2301
+cost      = 266
+acceleration    = 30.0
+deceleration    = 36.0
+turn_rate_yaw   = 10
+turn_rate_pitch = 7
+radius          = 100.44
+cruise_altitude = 0
+
+[assets]
+model     = ou137
+
+[weapon]
+main        = machine_gun
+count:int   = 1
+spread:vec3 = 0,0,0

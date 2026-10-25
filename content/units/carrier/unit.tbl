@@ -1,0 +1,31 @@
+; ============================================================
+; 轻型航母（carrier）
+;
+; 厚血支援舰。双门重炮 + 高结构强度，为编队撑住正面。
+;
+; radius 来自 GLB 包围盒实测（ou235 最长边 601.30 m ÷ 2），
+; **不要手改** —— 寻路膨胀 / 单位分离 / 扫掠命中都吃这个值。
+; model 是逻辑名，解析走 content/assets/assets.tbl 的 [ship] 段；换模型只改那一行。
+; ============================================================
+[stats]
+name      = "轻型航母"
+speed     = 130
+max_hp    = 20000
+armor     = 80
+shield    = 7000
+radar     = 2901
+cost      = 666
+acceleration    = 65.0
+deceleration    = 78.0
+turn_rate_yaw   = 6
+turn_rate_pitch = 4
+radius          = 300.65
+cruise_altitude = 0
+
+[assets]
+model     = ou235
+
+[weapon]
+main        = heavy_beam
+count:int   = 2
+spread:vec3 = 0,20,0

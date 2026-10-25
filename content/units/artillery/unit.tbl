@@ -1,0 +1,31 @@
+; ============================================================
+; 力场炮机（artillery）
+;
+; 三炮口重击，弹速慢需预判，对大型舰体收益最高。
+;
+; radius 来自 GLB 包围盒实测（ou04 最长边 38.94 m ÷ 2），
+; **不要手改** —— 寻路膨胀 / 单位分离 / 扫掠命中都吃这个值。
+; model 是逻辑名，解析走 content/assets/assets.tbl 的 [ship] 段；换模型只改那一行。
+; ============================================================
+[stats]
+name      = "力场炮机"
+speed     = 220
+max_hp    = 3400
+armor     = 17
+shield    = 1190
+radar     = 2058
+cost      = 113
+acceleration    = 110.0
+deceleration    = 132.0
+turn_rate_yaw   = 18
+turn_rate_pitch = 12
+radius          = 19.47
+cruise_altitude = 0
+
+[assets]
+model     = ou04
+
+[weapon]
+main        = artillery_cannon
+count:int   = 3
+spread:vec3 = 5,0,0
