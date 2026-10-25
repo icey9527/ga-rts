@@ -26,6 +26,9 @@ extends Node3D
 const MODEL_EXTENSIONS: Array[String] = ["glb", "gltf", "scn", "tscn", "res"]
 ## 姿态"贴着世界 up 时"改用这个 up，避免 Basis.looking_at 退化
 const FALLBACK_UP := Vector3.BACK
+
+## 两个方向向内积低于这个值（≈ 176°）时视为"几乎反向"（保留作诊断参考，不再参与分支）
+const OPPOSITE_DOT := -0.997
 ## 视为机头与世界 up 共线的阈值
 const UP_DEGENERATE_DOT := 0.999
 
@@ -131,9 +134,26 @@ func sync_visual(delta: float) -> void:
 		# 帧率无关的指数插值：t = 1 - e^(-k·dt)
 		var t := 1.0 - exp(-maxf(follow_sharpness, 0.0) * maxf(delta, 0.0))
 		_render_position = _render_position.lerp(target_position, t)
-		var blended := _render_forward.lerp(_unit.forward, t)
-		if blended.length_squared() > 1.0e-8:
-			_render_forward = blended.normalized()
+		# 方向向量**不能**用 lerp 线性插值：机头掉转接近 180° 时插值向量会穿过零点，
+		# 归一化后方向逐帧随机跳变 —— 玩家看到的就是模型原地疯狂打转。
+		# 也不能用 Vector3.slerp：它在两向量**正相反**时叉积为零，等价于“不旋转”
+		# （实测 600 帧方向一动不动、残差恒为 180°）。
+		# 正确做法：显式取旋转轴 + 按角度插值；反向时给一条**确定性**的垂直轴（不用随机，
+		# 否则同输入两次跑出不同结果）。
+		var theta := _render_forward.angle_to(_unit.forward)
+		if theta <= 1.0e-4:
+			_render_forward = _unit.forward
+		else:
+			var axis := _render_forward.cross(_unit.forward)
+			if axis.length_squared() < 1.0e-8:
+				axis = _render_forward.cross(Vector3.UP)
+				if axis.length_squared() < 1.0e-8:
+					axis = _render_forward.cross(Vector3.RIGHT)
+			var spun := _render_forward.rotated(axis.normalized(), theta * t)
+			if spun.is_finite() and spun.length_squared() > 1.0e-8:
+				_render_forward = spun.normalized()
+			else:
+				_render_forward = _unit.forward
 	_apply_render_transform()
 
 

@@ -41,6 +41,7 @@ const INFLATED_COLOR := Color(0.35, 0.75, 1.0, 0.10)
 @onready var units: Node3D = $Units
 @onready var camera_rig: RtsCameraRig = $Camera
 @onready var input_router: InputRouter = $InputRouter
+@onready var _hud: MinimalHUD = $HudLayer/MinimalHUD
 
 ## 模拟中枢（RefCounted：不占节点、可无头单测）
 var _session: BattleSession = null
@@ -88,6 +89,11 @@ func _ready() -> void:
 	# 选择候选 = Unit 数据对象（ViewProjection 认 position 属性），
 	# 于是选中列表里拿到的是模拟对象本身，CommandBus 的目标也就直接是 Unit。
 	input_router.set_candidates(_session.units())
+
+	# HUD 只是只读表现层：它自己每帧从 session 读 position / team / hp_ratio()。
+	# 不反向写任何模拟字段（硬规则 4）。
+	if _hud != null:
+		_hud.bind_session(_session)
 
 	# 最小交战 AI：只控敌方（team 1）。玩家指挥 team 0。
 	# 没有它的话，不给命令就永远不会打起来 —— S3 结束时的真实状态。

@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/battle.gd" id="1_battle"]
 [ext_resource type="PackedScene" path="res://scenes/camera/rts_camera.tscn" id="2_camera"]
 [ext_resource type="Script" path="res://scripts/input/input_router.gd" id="3_input"]
 [ext_resource type="PackedScene" path="res://scenes/units/unit_base.tscn" id="4_unit"]
+[ext_resource type="PackedScene" path="res://scenes/ui/minimal_hud.tscn" id="5_hud"]
 
 [node name="Battle" type="Node3D"]
 script = ExtResource("1_battle")
@@ -24,3 +25,7 @@ accept_input = false
 
 [node name="InputRouter" type="Node" parent="."]
 script = ExtResource("3_input")
+
+[node name="HudLayer" type="CanvasLayer" parent="."]
+
+[node name="MinimalHUD" parent="HudLayer" instance=ExtResource("5_hud")]

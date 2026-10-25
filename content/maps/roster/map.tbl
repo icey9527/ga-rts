@@ -1,0 +1,223 @@
+; ============================================================
+; roster —— 目录名即 ID（content/maps/roster → 地图 ID = roster）
+;
+; 用途：一张「全员登场」的展示图。content/units 下的新机型（15 个角色 +
+; ou05 / ou134）大部分都在这张图上出现，用来肉眼检查建模比例、巡航高度
+; 与阵型观感；battle.gd 仍然只认逻辑 ID，这张图不会被主流程自动加载。
+;
+; 节结构（解析与校验见 scripts/data/map_def.gd）：
+;   [map]              地图级参数：显示名 / 默认层 / 天空 / 进场机位
+;   [obstacle.<名字>]  一个 XZ 圆柱障碍：pos:vec3 / radius / top / bottom
+;   [spawn.<名字>]     一个初始单位：unit / team / pos:vec3 / layer
+;
+; 单位口径（docs/scale-and-units.md）：1 unit = 1 m，+Y 向上。
+; 高度三层 L0 = -400 / L1 = 0 / L2 = +400，每层容差 ±150（ADR-0003）。
+; 本图全部单位在 L1：pos.y 就填各自 unit.tbl 的 cruise_altitude
+; （小飞机 40~100，大舰 0），出生即稳态，不会被 altitude 通道往回拉。
+;
+; 障碍语义：top 高于某层中心 → 该层必须绕行；top <= 层中心 → 该层直接飞过。
+;   本图 4 个低障碍（top 180~300）：L1 全挡、L2(+400) 全可飞越；
+;   2 个高障碍（top 900 / 1050）：三层都挡（也压住 L2 的上方通道）。
+;   于是「切到 L2」是真收益：L1 要绕 6 根柱子，L2 只剩 2 根。
+; ============================================================
+
+[map]
+name       = "全员登场 · 双舰对决"
+layer:int  = 1                 ; 默认层 L1（0 m）
+sky        = si_sbg_0110       ; assets.tbl [sky] 的逻辑名（不是路径）
+focus:vec3 = 0,0,0             ; 进场机位焦点：场地正中，两队与中央空间站同框
+distance   = 9000.0            ; 进场机位距离（米）：要装下 ±1600 m 的阵型
+
+; ------------------------------------------------------------
+; 障碍（6 根圆柱，沿 z≈0 的接触线布置）
+;
+; 布阵意图：两队分列南北（team0 南 z<0，team1 北 z>0），中线上的障碍正好
+; 卡住「正面冲锋」的直线。重炮射程 2000 m，绕行本身就要花时间，
+; 所以开局的交火发生在中线两翼的缺口，中路交给 L2 高度层。
+;
+;   名称                 位置                 r    bottom→top   挡哪些层
+;   rock_west_low        (-1500, -100)       300   -500→ 220    L0 L1
+;   rock_north_low       ( -600,  450)       220   -450→ 300    L0 L1
+;   station_center_high  (    0,    0)       350   -800→ 900    L0 L1 L2  ← 全层
+;   rock_east_low        ( 1500, -500)       260   -400→ 240    L1
+;   rock_meadow_low      (  300,  700)       200   -350→ 180    L1
+;   wreck_east_high      (  900,  300)       240   -700→1050    L0 L1 L2  ← 全层
+;
+; 中央空间站 = 场地地标，两队都能以它做参照对齐；wreck_east_high 专门堵
+; 东北缺口，避免「一律贴右边冲」变成唯一解。
+; ------------------------------------------------------------
+
+[obstacle.rock_west_low]
+pos:vec3 = -1500,0,-100
+radius   = 300.0
+top      = 220.0               ; < 400：只挡 L0/L1，L2 可飞越
+bottom   = -500.0
+
+[obstacle.rock_north_low]
+pos:vec3 = -600,0,450
+radius   = 220.0
+top      = 300.0               ; < 400：低层障碍
+bottom   = -450.0
+
+[obstacle.station_center_high]
+pos:vec3 = 0,0,0
+radius   = 350.0
+top      = 900.0               ; > 800：三层全挡，中路只能绕
+bottom   = -800.0
+
+[obstacle.rock_east_low]
+pos:vec3 = 1500,0,-500
+radius   = 260.0
+top      = 240.0               ; < 400：低层障碍，挡住东南缺口的下半部分
+bottom   = -400.0
+
+[obstacle.rock_meadow_low]
+pos:vec3 = 300,0,700
+radius   = 200.0
+top      = 180.0               ; 最矮的一根：L1 仍要绕，L2 完全无感
+bottom   = -350.0
+
+[obstacle.wreck_east_high]
+pos:vec3 = 900,0,300
+radius   = 240.0
+top      = 1050.0              ; > 800：三层全挡（六根柱子里最高）
+bottom   = -700.0
+
+; ------------------------------------------------------------
+; 初始单位：16 个 spawn，team 0 / team 1 各 8 个
+;
+; 编成（两台一队镜像，按「体量对等」配对，cost 合计 2854 : 2868，差 14 = 0.5%）：
+;
+;   槽位     team0（玩家，南）        team1（AI，北）        cost 0 / 1
+;   指挥      mothership              mothership             866 / 866   ← 镜像
+;   航母      carrier                 carrier                666 / 666   ← 镜像
+;   重击      tiger                   tiger                  400 / 400   ← 镜像
+;   重甲      heavy (r=175.87)        ou134 (r=176.0)        426 / 340
+;   远程舰    bomber                × missile_frigate        200 / 300
+;   狙击/炮   sniper                  artillery              100 / 113
+;   中型      fighter                 gunship                140 / 120
+;   轻骑      scout                   interceptor             56 /  63
+;
+;   heavy 与 ou134 的 stats 几乎逐项相同（hp 12800 / speed 180 / heavy_beam），
+;   是天然的一对，用它们把「新旧机型同场」的对比摆出来。
+;   bomber（6000 hp / 200 cost）对 missile_frigate（9000 hp / 300 cost）是本表
+;   唯一明显的体量差，靠重甲槽（426 vs 340）与中型槽（140 vs 120）反向抵消。
+;
+; 阵型（南北镜像，尺寸以 z 轴镜像）：
+;   z 后排  ±1150~±1300  母舰 / 航母          ← 大舰最后排，视野与射界都留在后方
+;   z 中排  ±900          tiger / heavy / ou134 ← 重炮线，两队相距 1800 m，
+;                                                 落在 heavy_beam(2000) / artillery(2200) 内，开局即交火
+;   z 前排  ±1500~±1650   bomber / fighter / sniper / gunship / artillery ← 远程与快攻
+;   z 侧翼  ±1250 (x=±1400) scout / interceptor  ← 外线骚扰位，先绕开障碍的外侧
+;
+; 两队重心间距：team0 z 均值 -1262.5，team1 z 均值 +1287.5 → 约 2550 m
+; （在 2000~2600 的射程带内，但不会一开局就贴脸）。
+;
+; 摆位硬约束：每个 XZ 都避开「障碍半径 + 该单位半径」的膨胀圈。
+;   母舰 r=561.76 / 航母 r=300.65 的膨胀圈很大，因此：
+;     - 两台母舰都放在 x=-1600 的西侧开阔区（离 rock_west_low 1055 m，
+;       需求 861.76 m，余量 193 m）；
+;     - 两台航母放在 x=+500 的空隙里，离中央空间站 1281 / 1393 m
+;       （需求 650.65 m）；母舰与航母彼此约 2100 m，母舰与同队重甲
+;       838 m（需求 737.6 m），谁也不压谁。
+; ------------------------------------------------------------
+
+; ---------- team 0：玩家侧，南半场（z < 0） ----------
+
+[spawn.t0_mothership]
+unit     = mothership
+team:int = 0
+pos:vec3 = -1600,0,-1150
+layer:int = 1
+
+[spawn.t0_carrier]
+unit     = carrier
+team:int = 0
+pos:vec3 = 500,0,-1200
+layer:int = 1
+
+[spawn.t0_tiger]
+unit     = tiger
+team:int = 0
+pos:vec3 = 1000,40,-900          ; tiger cruise_altitude = 40
+layer:int = 1
+
+[spawn.t0_heavy]
+unit     = heavy
+team:int = 0
+pos:vec3 = -800,0,-900
+layer:int = 1
+
+[spawn.t0_bomber]
+unit     = bomber
+team:int = 0
+pos:vec3 = -100,100,-1500        ; bomber cruise_altitude = 100（高空轰炸机）
+layer:int = 1
+
+[spawn.t0_fighter]
+unit     = fighter
+team:int = 0
+pos:vec3 = 650,80,-1550
+layer:int = 1
+
+[spawn.t0_sniper]
+unit     = sniper
+team:int = 0
+pos:vec3 = -1100,40,-1650
+layer:int = 1
+
+[spawn.t0_scout]
+unit     = scout
+team:int = 0
+pos:vec3 = 1400,80,-1250
+layer:int = 1
+
+; ---------- team 1：AI 侧，北半场（z > 0），与 team 0 逐槽对位 ----------
+
+[spawn.t1_mothership]
+unit     = mothership
+team:int = 1
+pos:vec3 = -1600,0,1150
+layer:int = 1
+
+[spawn.t1_carrier]
+unit     = carrier
+team:int = 1
+pos:vec3 = 500,0,1300            ; 比 t0 航母多让 100 m：躲 rock_meadow_low 的膨胀圈
+layer:int = 1
+
+[spawn.t1_tiger]
+unit     = tiger
+team:int = 1
+pos:vec3 = 1000,40,900
+layer:int = 1
+
+[spawn.t1_cruiser]
+unit     = ou134
+team:int = 1
+pos:vec3 = -800,0,900
+layer:int = 1
+
+[spawn.t1_frigate]
+unit     = missile_frigate
+team:int = 1
+pos:vec3 = -100,0,1500
+layer:int = 1
+
+[spawn.t1_gunship]
+unit     = gunship
+team:int = 1
+pos:vec3 = 650,40,1650
+layer:int = 1
+
+[spawn.t1_artillery]
+unit     = artillery
+team:int = 1
+pos:vec3 = -1100,0,1650
+layer:int = 1
+
+[spawn.t1_interceptor]
+unit     = interceptor
+team:int = 1
+pos:vec3 = 1400,80,1250
+layer:int = 1
