@@ -1,0 +1,18 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/camera/camera_rig.gd" id="1_rig"]
+[ext_resource type="Script" path="res://scripts/camera/rts_camera_3d.gd" id="2_cam3d"]
+[ext_resource type="Script" path="res://scripts/camera/rts_camera_2d.gd" id="3_cam2d"]
+
+[node name="CameraRig" type="Node3D"]
+script = ExtResource("1_rig")
+
+[node name="Cam3D" type="Node3D" parent="."]
+script = ExtResource("2_cam3d")
+
+[node name="Camera3D" type="Camera3D" parent="Cam3D"]
+
+[node name="Cam2D" type="Node3D" parent="."]
+script = ExtResource("3_cam2d")
+
+[node name="Camera3D" type="Camera3D" parent="Cam2D"]

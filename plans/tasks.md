@@ -28,7 +28,7 @@
 
 目标：一艘船能绕障碍飞到指定点，双相机可切换。
 
-### T-1.1 项目配置与骨架
+### T-1.1 项目配置与骨架 ✅
 
 - **交给**：worker
 - **产出**：
@@ -38,7 +38,7 @@
 - **约束**：input 键位名必须与 `docs/controls.md` 一致（snake_case）
 - **验收**：Godot 启动无报错，autoload 全部就位，InputMap 键位齐全
 
-### T-1.2 相机（双视图）
+### T-1.2 相机（双视图）✅
 
 - **交给**：worker
 - **产出**：`scripts/camera/view_projection.gd`、`rts_camera_3d.gd`、`rts_camera_2d.gd`、`scenes/camera/rts_camera.tscn`
@@ -96,6 +96,8 @@
 | Godot 内资产验证 | v0.3.0-s0.5 |
 | 数据注册表（TBL 解析 + 校验） | v0.4.0-s0.5 |
 | 特效管线 208 个公告板 glb | v0.5.0-s0.5 |
+| T-1.1 项目配置与骨架（3 autoload + 23 个 InputMap action + main/battle 场景） | v0.6.0-s1 |
+| T-1.2 双相机（3D 焦点轨道 / 2D 正交 / CameraRig / ViewProjection），43 条断言全过 | v0.6.0-s1 |
 
 ## 管线坑（攒下来，别再踩）
 
