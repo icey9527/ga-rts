@@ -35,3 +35,6 @@ desktop.ini
 /tools/temp/
 /tools/model-pipeline/inventory-*.csv
 !/tools/model-pipeline/inventory-manifest.json
+
+# tools/ 已用 .gdignore 屏蔽，此处兜底
+*.csv.import
