@@ -104,6 +104,9 @@ func tick(units: Array, dt: float) -> Array:
 					"target_id": u.id,
 					"point": res["point"],
 					"damage": p.damage,
+					# 击杀归属：没这个就没法记「谁打死的」，死亡结算里只能记 -1
+					"owner_id": p.owner_id,
+					"team": p.team,
 				}
 
 		if not best.is_empty():

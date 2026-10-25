@@ -36,6 +36,10 @@ extends RefCounted
 
 ## 生成了一个单位（表现层据此挂 UnitView）
 signal unit_spawned(unit: Unit)
+## 单位已结算死亡并**从 _units 移除之后**才发（T-2.4）。
+## killer_id = 造成致死一击的发射者，未知为 -1。
+## 只发一次：死亡靠请求表去重 + alive 判定兼底，重复请求不会重复发。
+signal unit_died(unit: Unit, killer_id: int)
 ## 给单位装上了新航线（表现层据此画路径线；空路径不会发）
 signal route_assigned(unit: Unit, path: PackedVector3Array)
 ## 一条命令在 tick 里被处理完（units = 实际生效的单位数）
@@ -105,6 +109,15 @@ var _shots_wanted := 0
 var _shots_spawned := 0
 ## 累计命中结算次数（T-2.3）
 var _hits_applied := 0
+
+## 请求表（T-2.4，ADR-0012 机制 #4）：本 tick 里产生的生成/销毁都先入队，
+## 统一在第 8 步结算，保证第 1~7 步看到的集合恒定。
+var _spawn_requests: Array[Dictionary] = []
+## unit_id -> killer_id。用 Dictionary 而不是数组：重复请求天然去重。
+var _kill_requests: Dictionary = {}
+
+var _spawns_settled := 0
+var _deaths_settled := 0
 
 ## 弹体管理与扫掠命中检测（ADR-0013）
 var _projectiles := ProjectileManager.new()
@@ -176,6 +189,28 @@ func spawn_unit(def_id: String, position: Vector3, team: int = 0) -> Unit:
 	_attach_to_squad(unit)
 	unit_spawned.emit(unit)
 	return unit
+
+
+## 请求生成（**不当场生效**）。到下一 tick 的第 8 步才真正生成。
+## 用在 tick 中途需要“打完这行就多一艘”的场合（增援 / 分裂 / 孵化）；
+## 初始化阶段直接调 spawn_unit 即可，不需要多绕一个 tick。
+func request_spawn(def_id: String, position: Vector3, team: int = 0) -> void:
+	_spawn_requests.append({"def_id": def_id, "position": position, "team": team})
+
+
+## 请求销毁。只入队，不碰 _units；同 id 重复请求会被合并（保留最先的 killer）。
+## 真正的伤害已经在目标侧结算完（apply_damage），这里只负责“从世界的名单里拿掉”。
+func request_kill(unit_id: int, killer_id: int = -1) -> void:
+	if not _kill_requests.has(unit_id):
+		_kill_requests[unit_id] = killer_id
+
+
+func spawn_request_count() -> int:
+	return _spawn_requests.size()
+
+
+func kill_request_count() -> int:
+	return _kill_requests.size()
 
 
 ## 本会话的编队（副本）。编队按 team 自动生成，本卡没有"手动编队"指令。
@@ -392,6 +427,12 @@ func tick_index() -> int:
 	return _tick_index
 
 
+## 弹体管理器（只读用途：表现层渲染弹体、验证场景造弹）。
+## 注意：不要拿它绕过 tick 去改单位状态，命中结果只给记录。
+func projectiles() -> ProjectileManager:
+	return _projectiles
+
+
 func _step_commands() -> void:
 	if _pending_commands.is_empty():
 		return
@@ -476,7 +517,11 @@ func _step_projectiles(dt: float) -> void:
 		var target := _context.unit_by_id(hit["target_id"])
 		if target == null:
 			continue
-		target.apply_damage(hit["damage"])
+		# apply_damage 是唯一伤害入口，返回本次是否致死
+		var lethal := target.apply_damage(hit["damage"])
+		if lethal:
+			# 只入队，不在这里改 _units（硬规则 6）
+			request_kill(target.id, int(hit.get("owner_id", -1)))
 	_hits_applied += hits.size()
 
 
@@ -492,21 +537,87 @@ func _apply_accumulators() -> void:
 		unit.apply_accumulators()
 
 
-## 第 8 步里与单位相关的部分：死亡清理 + 编队重建。遍历中不改集合（硬规则 6），先收集再重建。
+## 第 8 步：请求-结算两段式（T-2.4，ADR-0012 机制 #4）。
+##
+## 硬规则 6：遍历中不改集合。所以本 tick 产生的「要生成 / 要销毁」都只进请求表，
+## 统一在这里结算。好处：
+##   · 第 1~7 步看到的集合恒定，索敌 / 移动 / 弹体不会踩到半改的数组
+##   · 死亡信号的发射点全工程只有一个
+##   · unit_died 天然只发一次
 func _resolve_requests() -> void:
-	var has_dead := false
-	for unit in _units:
-		if not unit.alive:
-			has_dead = true
-			break
-	if not has_dead:
+	_settle_spawns()
+	_settle_kills()
+
+
+## 结算生成请求：按入队顺序，保证确定性。
+func _settle_spawns() -> void:
+	if _spawn_requests.is_empty():
 		return
+	var batch := _spawn_requests
+	_spawn_requests = []
+	for req in batch:
+		var unit := spawn_unit(req["def_id"], req["position"], int(req["team"]))
+		if unit != null:
+			_spawns_settled += 1
+
+
+## 结算销毁请求。
+##
+## 三段式，顺序不能换：
+##   1. 并上兼底条目：alive 已经为 false 、却没进请求表的（剧本杀 / 外部直接置死）也要清
+##   2. 一次移除 + 清死掉的索敌目标 + 重建编队
+##   3. **最后**才发 unit_died —— 监听者拿到的 session 状态已经自洽，
+##      不会出现「收到死亡通知但 unit_count() 还没减」这种中间态
+func _settle_kills() -> void:
+	if _kill_requests.is_empty() and not _has_dead_unit():
+		return
+
+	var pending := _kill_requests
+	_kill_requests = {}
+
+	# 兼底：没进请求表但已经死了的，补一条（killer 未知记 -1）
+	for unit in _units:
+		if not unit.alive and not pending.has(unit.id):
+			pending[unit.id] = -1
+
+	if pending.is_empty():
+		return
+
+	var dead: Array[Unit] = []
 	var survivors: Array[Unit] = []
 	for unit in _units:
-		if unit.alive:
+		if pending.has(unit.id) and not unit.alive:
+			dead.append(unit)
+		else:
 			survivors.append(unit)
+
+	if dead.is_empty():
+		return
+
 	_units = survivors
+
+	# 索敌目标已不在存活名单里 → 清掉，否则下一 tick 会一直拿着一个不存在的 id
+	var live := {}
+	for unit in _units:
+		live[unit.id] = true
+	for squad in _squads:
+		if squad.has_target() and not live.has(squad.target_id):
+			squad.clear_target()
+
 	_rebuild_squads()
+
+	# 确定性：同一 tick 内多个死亡按 id 升序通知
+	dead.sort_custom(func(a: Unit, b: Unit) -> bool: return a.id < b.id)
+	for unit in dead:
+		_deaths_settled += 1
+		unit_died.emit(unit, int(pending.get(unit.id, -1)))
+
+
+func _has_dead_unit() -> bool:
+	for unit in _units:
+		if not unit.alive:
+			return true
+	return false
 
 
 # ---------------------------------------------------------------- 诊断
@@ -548,6 +659,13 @@ func stats() -> Dictionary:
 		"squads_with_target": squads_with_target,
 		"weapon_mounts": weapon_mount_count(),
 		"shots_wanted": _shots_wanted,
+		"shots_spawned": _shots_spawned,
+		"hits_applied": _hits_applied,
+		"spawns_settled": _spawns_settled,
+		"deaths_settled": _deaths_settled,
+		"pending_spawns": _spawn_requests.size(),
+		"pending_kills": _kill_requests.size(),
+		"projectiles": _projectiles.stats(),
 		"states": states,
 	}
 
