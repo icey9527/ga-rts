@@ -64,3 +64,20 @@ unit     = ou05
 team:int = 1
 pos:vec3 = -3000,0,1400
 layer:int = 1
+
+; 以下两艘是玩家方（team 0）。
+; 之前四个 spawn 全写成 team = 1，场上就没有敌人 —— 能开机、能选中、能下达命令，
+; 但两队不会打起来。这里补上对立面，打开主场景就能看一场 2v2。
+; 注：目前输入层不按队伍过滤选中，两队都能被玩家指挥；真正的 AI 对手在 S4/S5。
+
+[spawn.ally_cruiser_03]
+unit     = ou134
+team:int = 0
+pos:vec3 = 3000,0,0
+layer:int = 1
+
+[spawn.ally_frigate_04]
+unit     = ou05
+team:int = 0
+pos:vec3 = 3000,0,-1400
+layer:int = 1
