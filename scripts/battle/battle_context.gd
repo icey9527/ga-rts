@@ -35,6 +35,19 @@ var _squads: Array[Squad] = []
 var _tick_index := 0
 ## AI 专用随机源（不会碰全局 randi，避免表现层取随机数影响模拟可回放性）
 var _rng := RandomNumberGenerator.new()
+## L0 数据注册表（**只读**；装配炮塔 / 后续技能需要按逻辑 ID 查数据）。
+## 与“不持有 BattleSession”不矛盾：Registry 是纯数据表，没有命令入口。
+var _registry: Registry = null
+
+
+## 绑定数据注册表（BattleSession.setup 调一次）。
+func bind_registry(registry: Registry) -> void:
+	_registry = registry
+
+
+## 数据注册表（未绑定时为 null —— 调用方必须处理）
+func registry() -> Registry:
+	return _registry
 
 
 func _init() -> void:

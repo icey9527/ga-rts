@@ -103,6 +103,13 @@ var cruise_altitude := 0.0
 ## S2 武器卡把它改成从 [weapon] range 装配（那时这个默认值只留给手搓单位）。
 var weapon_range := 1800.0
 
+# ---------------------------------------------------------------- 武器
+
+## 本单位的炮塔组（T-2.2 起由 BattleSession.spawn_unit → UnitWeapons.build 装配）。
+## null = 没有武器数据（手搓单位 / 机型没写 [weapon]），不是错误。
+## 只允许 UnitWeapons 写（aim_direction / cooldown_left）；本类不碰它。
+var weapons: UnitWeapons = null
+
 # ---------------------------------------------------------------- 航线
 
 ## 路径点（Y = 该层巡航高度，由 NavService 给）。空数组 = 没有航线

@@ -1,0 +1,12 @@
+; ============================================================
+; 武器类别的扫描规则（不是武器清单！）
+; 加新武器 = 往 content/weapons/ 丢一个目录，运行时自动发现。
+; 目录名即 ID，weapon.tbl 里不重复声明 ID。
+; 类别注册见 content/base.tbl 的 [registry] weapons = weapons/weapons.tbl
+; ============================================================
+
+[type.weapon]
+dir      = content/weapons
+manifest = weapon.tbl
+optional = se.tbl, vfx.tbl          ; 仅登记，暂未参与校验
+id_from  = dirname

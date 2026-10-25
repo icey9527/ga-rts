@@ -26,6 +26,7 @@ const REPORT_PATH := "user://registry_report.txt"
 ## 类型 manifest 的必需键：{ 类型节名: { 节名: [必需键] } }
 const REQUIRED_KEYS := {
 	"type.unit": {"stats": ["name", "speed", "max_hp"]},
+	"type.weapon": {"weapon": ["name", "damage", "range", "cooldown"]},
 }
 
 ## 资产路径不带扩展名（引擎按导入产物找），校验时依次尝试这些扩展名
@@ -122,6 +123,16 @@ func map(id: String) -> Dictionary:
 	var records: Dictionary = _records.get("maps", {})
 	if not records.has(id):
 		push_error("[registry] 未知地图 ID: %s" % id)
+		return {}
+	return (records[id] as Dictionary).duplicate(true)
+
+
+## 武器记录（content/weapons/<id>/weapon.tbl）。结构同 unit()：{"weapon": {...}, "id", "source"}
+## 未知 ID → push_error 并返回空字典
+func weapon(id: String) -> Dictionary:
+	var records: Dictionary = _records.get("weapons", {})
+	if not records.has(id):
+		push_error("[registry] 未知武器 ID: %s" % id)
 		return {}
 	return (records[id] as Dictionary).duplicate(true)
 

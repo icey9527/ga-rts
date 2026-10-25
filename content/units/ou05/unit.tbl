@@ -31,7 +31,9 @@ cruise_altitude = 80.0      ; 米，相对本层中心；±150 带内
 model     = ou05
 
 [weapon]
-; 占位：武器表尚未实现，这里只登记逻辑名与数量
-main      = pulse_cannon
-count:int = 2
-range     = 1800.0
+; main = content/weapons/<id>/ 的目录名（T-2.2 起由 UnitWeapons.build 装配炮塔）
+; count = 炮塔数；spread = 相邻炮塔在舰体坐标系里的错开量（米，vec3）
+main        = pulse_cannon
+count:int   = 2
+spread:vec3 = 3,0,0
+range       = 1800.0

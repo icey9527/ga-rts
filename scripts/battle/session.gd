@@ -99,6 +99,8 @@ var _foreign_targets := 0
 var _last_path_points := 0
 ## 机型数据缺键的兜底报告：def_id -> PackedStringArray（缺哪些键）
 var _data_warnings: Dictionary = {}
+## 最近一个 tick 里“想开火”的炮塔数（T-2.2）
+var _shots_wanted := 0
 
 
 # ---------------------------------------------------------------- 装配
@@ -109,6 +111,7 @@ var _data_warnings: Dictionary = {}
 func setup(registry: Registry, bus: Object = null) -> void:
 	_registry = registry
 	_bus = bus
+	_context.bind_registry(registry)
 	if bus != null and bus.has_signal(&"command_issued"):
 		var handler := Callable(self, &"_on_command_issued")
 		if not bus.is_connected(&"command_issued", handler):
@@ -159,6 +162,8 @@ func spawn_unit(def_id: String, position: Vector3, team: int = 0) -> Unit:
 	unit.speed = 0.0
 	unit.clear_route()
 	unit.reset_accumulators()
+	# 炮塔组来自 unit.tbl 的 [weapon]（main / count / spread），武器数据来自 content/weapons/
+	unit.weapons = UnitWeapons.build(unit, def_id, _context)
 
 	_units.append(unit)
 	_attach_to_squad(unit)
@@ -366,6 +371,7 @@ func tick(dt: float) -> void:
 	_sync_context()          # AI 只读视图（命令处理完才刷，新生成的单位本 tick 就能被看到）
 	_step_unit_orders(dt)    # 3a 个体状态机
 	_step_targeting(dt)      # 3b 编队级集中选靶（1 秒节流）
+	_step_weapons(dt)        # 3b+ 炮塔瞄准与冷却（只报“想开火”数，不生弹体）
 	_step_unit_movement(dt)  # 3c（含每单位 reset_accumulators）
 	_apply_accumulators()    # 4
 	_resolve_requests()      # 8
@@ -409,6 +415,22 @@ func _step_unit_orders(dt: float) -> void:
 ## 节流阈值只有一个来源（Targeting.SCAN_INTERVAL）。
 func _step_targeting(dt: float) -> void:
 	_targeting.update(_context, dt)
+
+
+## 3b+ 炮塔瞄准与冷却（ADR-0012 机制 #11 的下半层）。
+## 有目标的单位：weapons.tick() 推进瞄准 + 冷却，返回“想开火”的炮塔数；
+## 没目标的单位：只推冷却（炮塔不转，但不能靠“没目标”白嫆冷却）。
+## **不生弹体、不判命中、不算伤害** —— 那是 T-2.3。
+func _step_weapons(dt: float) -> void:
+	_shots_wanted = 0
+	for unit in _units:
+		if not unit.alive or unit.weapons == null:
+			continue
+		var target := _context.unit_by_id(unit.target_id)
+		if target == null:
+			unit.weapons.tick_cooldowns(dt)
+			continue
+		_shots_wanted += unit.weapons.tick(unit, target.position, dt)
 
 
 ## 把本 tick 的只读视图刷进 BattleContext（AI 只看它，不看本类）
@@ -477,8 +499,19 @@ func stats() -> Dictionary:
 		"ticks": _tick_index,
 		"squads": _squads.size(),
 		"squads_with_target": squads_with_target,
+		"weapon_mounts": weapon_mount_count(),
+		"shots_wanted": _shots_wanted,
 		"states": states,
 	}
+
+
+## 本会话全部单位的炮塔总数（诊断用）
+func weapon_mount_count() -> int:
+	var total := 0
+	for unit in _units:
+		if unit.weapons != null:
+			total += unit.weapons.mount_count()
+	return total
 
 
 ## 集中选靶的计量快照（扫描次数 / 候选数 / 目标切换次数）
@@ -495,6 +528,11 @@ func navigation_stats() -> Dictionary:
 ## T-2.0 起缺键 = 坏数据，对应单位根本不会被生成（见 UnitDef.from_record）。
 func data_warnings() -> Dictionary:
 	return _data_warnings.duplicate(true)
+
+
+## 最近一个 tick 里“想开火”的炮塔数（T-2.2：只计数，不生弹体）
+func shots_wanted() -> int:
+	return _shots_wanted
 
 
 # ---------------------------------------------------------------- 内部

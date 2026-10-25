@@ -10,6 +10,7 @@
 units   = units/units.tbl
 teams   = teams/teams.tbl
 maps    = maps/maps.tbl
+weapons = weapons/weapons.tbl
 assets  = assets/assets.tbl
 audio   = audio/audio.tbl          ; * 待建
 sky     = sky/sky.tbl
