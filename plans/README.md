@@ -88,7 +88,9 @@
 5. 特效管线：el/scn0 下 oe* 与 ek/axo/effects/si_e* → 粒子/billboard 资源
 6. 写 content/base.tbl + content/assets/assets.tbl 初版
 7. ~~**舰首朝向目视确认**~~ ✅ 已确认：素材舰首在 +Z，需翻转 180°，脚本默认已开启
-8. 用 Godot 打开验证：拖一艘进场景，检查尺寸、材质、自动 LOD 是否生效
+8. ~~用 Godot 打开验证~~ ✅ `scenes/dev/verify_assets.tscn`：25 艘舰全部载入并渲染，
+   尺寸与清单一致，天空与材质正常，自动截图两张到 tools/temp/
+9. 特效管线与 base.tbl 注册表（下一步）
 
 ## 管线已知问题与结论
 
@@ -103,6 +105,7 @@
 | 坑 3 | map_Ka 不被 Blender 支持，只剩警告，不影响结果 |
 | 坑 4 | 材质漏接 BSDF → Material Output 会使渲染结果全黑且不报错（天空烘焙踩过） |
 | 天空 | 15 套天空球已烘成 equirect 全景；原引擎混合模式不可考，采用 screen 混合（纯加法会过曝到 3.5 峰值） |
+| Godot 验证 | `scenes/dev/verify_assets.tscn` 跑通：25 艘舰载入、尺寸与清单一致、天空与材质正常。截图见 tools/temp/（已 gitignore） |
 
 ## 待用户拍板（不阻塞）
 
