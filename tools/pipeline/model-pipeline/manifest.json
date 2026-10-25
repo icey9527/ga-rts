@@ -1,0 +1,936 @@
+{
+  "version": 1,
+  "coordinate_note": "OBJ Y-up/-Z-fwd -> Blender Z-up -> glTF Y-up/-Z-fwd(Godot)",
+  "scale_note": "1:1 不缩放，原始单位≈米",
+  "entries": {
+    "ob1501": {
+      "id": "ob1501",
+      "kind": "objects",
+      "parts": [
+        "SB_ob1501A"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ob1501a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\objects\\ob1501\\ob1501.glb",
+      "size_m": [
+        6824.243,
+        6507.952,
+        3331.327
+      ],
+      "bbox_min": [
+        -1824.243,
+        -4429.952,
+        -2087.327
+      ],
+      "bbox_max": [
+        5000.0,
+        2078.0,
+        1244.0
+      ],
+      "verts": 10736,
+      "tris": 9596,
+      "materials": 4,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ob1501A: 10 -> 4 材质"
+      ],
+      "bytes": 2253736
+    },
+    "ob1502": {
+      "id": "ob1502",
+      "kind": "objects",
+      "parts": [
+        "SB_ob1502A"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ob1502a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\objects\\ob1502\\ob1502.glb",
+      "size_m": [
+        2980.999,
+        1089.872,
+        2052.211
+      ],
+      "bbox_min": [
+        -1818.869,
+        -544.936,
+        -1136.127
+      ],
+      "bbox_max": [
+        1162.13,
+        544.936,
+        916.084
+      ],
+      "verts": 10872,
+      "tris": 7829,
+      "materials": 4,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ob1502A: 8 -> 4 材质"
+      ],
+      "bytes": 1428600
+    },
+    "ob1504": {
+      "id": "ob1504",
+      "kind": "objects",
+      "parts": [
+        "SB_ob1504A"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ob1504a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\objects\\ob1504\\ob1504.glb",
+      "size_m": [
+        10508.836,
+        9833.925,
+        12554.682
+      ],
+      "bbox_min": [
+        -5111.031,
+        -4677.806,
+        -9257.341
+      ],
+      "bbox_max": [
+        5397.805,
+        5156.119,
+        3297.341
+      ],
+      "verts": 14764,
+      "tris": 14378,
+      "materials": 4,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ob1504A: 11 -> 4 材质"
+      ],
+      "bytes": 1624520
+    },
+    "ob1505": {
+      "id": "ob1505",
+      "kind": "objects",
+      "parts": [
+        "SB_ob1505A"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ob1505a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\objects\\ob1505\\ob1505.glb",
+      "size_m": [
+        6022.738,
+        3701.68,
+        3338.192
+      ],
+      "bbox_min": [
+        -3011.369,
+        -2001.5,
+        -1669.096
+      ],
+      "bbox_max": [
+        3011.369,
+        1700.18,
+        1669.096
+      ],
+      "verts": 11813,
+      "tris": 8072,
+      "materials": 4,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ob1505A: 8 -> 4 材质"
+      ],
+      "bytes": 1366384
+    },
+    "ou01": {
+      "id": "ou01",
+      "kind": "ships",
+      "parts": [
+        "SB_ou01E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou01a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou01\\ou01.glb",
+      "size_m": [
+        347.44,
+        764.54,
+        242.254
+      ],
+      "bbox_min": [
+        -173.72,
+        -337.55,
+        -191.749
+      ],
+      "bbox_max": [
+        173.72,
+        426.99,
+        50.505
+      ],
+      "verts": 9411,
+      "tris": 8147,
+      "materials": 2,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou01E: 6 -> 2 材质"
+      ],
+      "bytes": 893020
+    },
+    "ou02": {
+      "id": "ou02",
+      "kind": "ships",
+      "parts": [
+        "SB_ou02E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou02a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou02\\ou02.glb",
+      "size_m": [
+        26.825,
+        49.792,
+        26.027
+      ],
+      "bbox_min": [
+        -13.412,
+        -24.376,
+        -14.162
+      ],
+      "bbox_max": [
+        13.412,
+        25.416,
+        11.864
+      ],
+      "verts": 8889,
+      "tris": 7731,
+      "materials": 2,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou02E: 6 -> 2 材质"
+      ],
+      "bytes": 921072
+    },
+    "ou03": {
+      "id": "ou03",
+      "kind": "ships",
+      "parts": [
+        "SB_ou03E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou03a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou03\\ou03.glb",
+      "size_m": [
+        39.274,
+        33.677,
+        26.53
+      ],
+      "bbox_min": [
+        -19.637,
+        -8.261,
+        -14.666
+      ],
+      "bbox_max": [
+        19.637,
+        25.416,
+        11.864
+      ],
+      "verts": 10668,
+      "tris": 8813,
+      "materials": 2,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou03E: 6 -> 2 材质"
+      ],
+      "bytes": 948704
+    },
+    "ou04": {
+      "id": "ou04",
+      "kind": "ships",
+      "parts": [
+        "SB_ou04E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou04a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou04\\ou04.glb",
+      "size_m": [
+        38.947,
+        37.43,
+        35.635
+      ],
+      "bbox_min": [
+        -19.474,
+        -12.014,
+        -23.77
+      ],
+      "bbox_max": [
+        19.474,
+        25.416,
+        11.864
+      ],
+      "verts": 13048,
+      "tris": 11349,
+      "materials": 2,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou04E: 6 -> 2 材质"
+      ],
+      "bytes": 1155876
+    },
+    "ou05": {
+      "id": "ou05",
+      "kind": "ships",
+      "parts": [
+        "SB_ou05E_body",
+        "SB_ou05E_laser"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou05a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou05\\ou05.glb",
+      "size_m": [
+        32.648,
+        63.629,
+        26.789
+      ],
+      "bbox_min": [
+        -16.299,
+        -38.213,
+        -14.925
+      ],
+      "bbox_max": [
+        16.349,
+        25.416,
+        11.864
+      ],
+      "verts": 14772,
+      "tris": 12663,
+      "materials": 3,
+      "turret_nodes": [
+        "turret_SB_ou05E_laser"
+      ],
+      "material_notes": [
+        "SB_ou05E_body: 6 -> 2 材质"
+      ],
+      "bytes": 1183992
+    },
+    "ou06": {
+      "id": "ou06",
+      "kind": "ships",
+      "parts": [
+        "SB_ou06E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou06a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou06\\ou06.glb",
+      "size_m": [
+        52.915,
+        41.756,
+        21.018
+      ],
+      "bbox_min": [
+        -21.565,
+        -16.34,
+        -9.154
+      ],
+      "bbox_max": [
+        31.35,
+        25.416,
+        11.864
+      ],
+      "verts": 11537,
+      "tris": 10166,
+      "materials": 2,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou06E: 6 -> 2 材质"
+      ],
+      "bytes": 1083732
+    },
+    "ou07": {
+      "id": "ou07",
+      "kind": "ships",
+      "parts": [
+        "SB_ou07E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou07a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou07\\ou07.glb",
+      "size_m": [
+        4.146,
+        11.184,
+        5.432
+      ],
+      "bbox_min": [
+        -2.073,
+        -11.075,
+        -2.931
+      ],
+      "bbox_max": [
+        2.073,
+        0.109,
+        2.501
+      ],
+      "verts": 1396,
+      "tris": 1136,
+      "materials": 1,
+      "turret_nodes": [],
+      "material_notes": [],
+      "bytes": 80164
+    },
+    "ou09": {
+      "id": "ou09",
+      "kind": "ships",
+      "parts": [
+        "SB_ou09E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou09a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou09\\ou09.glb",
+      "size_m": [
+        3.03,
+        8.217,
+        2.628
+      ],
+      "bbox_min": [
+        -1.517,
+        -4.918,
+        -0.965
+      ],
+      "bbox_max": [
+        1.512,
+        3.3,
+        1.663
+      ],
+      "verts": 206,
+      "tris": 144,
+      "materials": 1,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou09E: 2 -> 1 材质"
+      ],
+      "bytes": 27432
+    },
+    "ou107": {
+      "id": "ou107",
+      "kind": "ships",
+      "parts": [
+        "SB_ou107E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou107a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou107\\ou107.glb",
+      "size_m": [
+        42.441,
+        60.636,
+        29.847
+      ],
+      "bbox_min": [
+        -18.801,
+        -35.22,
+        -17.983
+      ],
+      "bbox_max": [
+        23.64,
+        25.416,
+        11.864
+      ],
+      "verts": 11692,
+      "tris": 10458,
+      "materials": 2,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou107E: 6 -> 2 材质"
+      ],
+      "bytes": 1185320
+    },
+    "ou108": {
+      "id": "ou108",
+      "kind": "ships",
+      "parts": [
+        "SB_ou108E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou108a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou108\\ou108.glb",
+      "size_m": [
+        128.99,
+        395.697,
+        139.679
+      ],
+      "bbox_min": [
+        -64.495,
+        -259.595,
+        -94.281
+      ],
+      "bbox_max": [
+        64.495,
+        136.101,
+        45.399
+      ],
+      "verts": 10110,
+      "tris": 9684,
+      "materials": 3,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou108E: 6 -> 3 材质"
+      ],
+      "bytes": 980200
+    },
+    "ou134": {
+      "id": "ou134",
+      "kind": "ships",
+      "parts": [
+        "SB_ou134E_body"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou134a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou134\\ou134.glb",
+      "size_m": [
+        218.532,
+        351.736,
+        227.571
+      ],
+      "bbox_min": [
+        -109.266,
+        -175.868,
+        -113.786
+      ],
+      "bbox_max": [
+        109.266,
+        175.868,
+        113.785
+      ],
+      "verts": 3036,
+      "tris": 2348,
+      "materials": 1,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou134E_body: 2 -> 1 材质"
+      ],
+      "bytes": 598984
+    },
+    "ou137": {
+      "id": "ou137",
+      "kind": "ships",
+      "parts": [
+        "SB_ou137E_body"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou137a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou137\\ou137.glb",
+      "size_m": [
+        71.778,
+        200.871,
+        74.61
+      ],
+      "bbox_min": [
+        -35.889,
+        -91.641,
+        -27.759
+      ],
+      "bbox_max": [
+        35.889,
+        109.23,
+        46.851
+      ],
+      "verts": 3825,
+      "tris": 2727,
+      "materials": 1,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou137E_body: 2 -> 1 材质"
+      ],
+      "bytes": 636132
+    },
+    "ou172": {
+      "id": "ou172",
+      "kind": "ships",
+      "parts": [
+        "SB_ou172E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou172a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou172\\ou172.glb",
+      "size_m": [
+        29.7,
+        29.349,
+        22.226
+      ],
+      "bbox_min": [
+        -14.85,
+        -10.899,
+        -10.826
+      ],
+      "bbox_max": [
+        14.85,
+        18.45,
+        11.4
+      ],
+      "verts": 2476,
+      "tris": 1987,
+      "materials": 1,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou172E: 2 -> 1 材质"
+      ],
+      "bytes": 626252
+    },
+    "ou231": {
+      "id": "ou231",
+      "kind": "ships",
+      "parts": [
+        "SB_ou231E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou231a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou231\\ou231.glb",
+      "size_m": [
+        110.257,
+        184.462,
+        160.674
+      ],
+      "bbox_min": [
+        -55.128,
+        -90.712,
+        -86.826
+      ],
+      "bbox_max": [
+        55.128,
+        93.75,
+        73.848
+      ],
+      "verts": 2735,
+      "tris": 1888,
+      "materials": 1,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou231E: 3 -> 1 材质"
+      ],
+      "bytes": 407684
+    },
+    "ou232": {
+      "id": "ou232",
+      "kind": "ships",
+      "parts": [
+        "SB_ou232E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou232a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou232\\ou232.glb",
+      "size_m": [
+        276.631,
+        317.695,
+        139.158
+      ],
+      "bbox_min": [
+        -138.316,
+        -162.717,
+        -35.055
+      ],
+      "bbox_max": [
+        138.316,
+        154.977,
+        104.103
+      ],
+      "verts": 3339,
+      "tris": 2779,
+      "materials": 1,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou232E: 2 -> 1 材质"
+      ],
+      "bytes": 572568
+    },
+    "ou233": {
+      "id": "ou233",
+      "kind": "ships",
+      "parts": [
+        "SB_ou233E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou233a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou233\\ou233.glb",
+      "size_m": [
+        275.444,
+        417.392,
+        106.975
+      ],
+      "bbox_min": [
+        -137.722,
+        -219.579,
+        -47.397
+      ],
+      "bbox_max": [
+        137.722,
+        197.812,
+        59.578
+      ],
+      "verts": 3661,
+      "tris": 2762,
+      "materials": 1,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou233E: 2 -> 1 材质"
+      ],
+      "bytes": 558072
+    },
+    "ou234": {
+      "id": "ou234",
+      "kind": "ships",
+      "parts": [
+        "SB_ou234E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou234a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou234\\ou234.glb",
+      "size_m": [
+        268.683,
+        409.508,
+        164.056
+      ],
+      "bbox_min": [
+        -119.416,
+        -202.487,
+        -86.48
+      ],
+      "bbox_max": [
+        149.266,
+        207.021,
+        77.576
+      ],
+      "verts": 3808,
+      "tris": 2320,
+      "materials": 2,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou234E: 6 -> 2 材质"
+      ],
+      "bytes": 645032
+    },
+    "ou235": {
+      "id": "ou235",
+      "kind": "ships",
+      "parts": [
+        "SB_ou235E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou235a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou235\\ou235.glb",
+      "size_m": [
+        595.737,
+        601.308,
+        326.788
+      ],
+      "bbox_min": [
+        -297.869,
+        -278.508,
+        -156.32
+      ],
+      "bbox_max": [
+        297.869,
+        322.8,
+        170.468
+      ],
+      "verts": 4457,
+      "tris": 2731,
+      "materials": 2,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou235E: 5 -> 2 材质"
+      ],
+      "bytes": 719608
+    },
+    "ou236": {
+      "id": "ou236",
+      "kind": "ships",
+      "parts": [
+        "SB_ou236E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou236a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou236\\ou236.glb",
+      "size_m": [
+        83.717,
+        92.743,
+        73.402
+      ],
+      "bbox_min": [
+        -41.859,
+        -42.0,
+        -51.0
+      ],
+      "bbox_max": [
+        41.859,
+        50.743,
+        22.402
+      ],
+      "verts": 3023,
+      "tris": 2328,
+      "materials": 1,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou236E: 3 -> 1 材质"
+      ],
+      "bytes": 404836
+    },
+    "ou237": {
+      "id": "ou237",
+      "kind": "ships",
+      "parts": [
+        "SB_ou237E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou237a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou237\\ou237.glb",
+      "size_m": [
+        649.11,
+        374.5,
+        613.782
+      ],
+      "bbox_min": [
+        -324.555,
+        -181.787,
+        -300.282
+      ],
+      "bbox_max": [
+        324.555,
+        192.713,
+        313.5
+      ],
+      "verts": 4130,
+      "tris": 2950,
+      "materials": 2,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou237E: 4 -> 2 材质"
+      ],
+      "bytes": 1144496
+    },
+    "ou238": {
+      "id": "ou238",
+      "kind": "ships",
+      "parts": [
+        "SB_ou238E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou238a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou238\\ou238.glb",
+      "size_m": [
+        635.413,
+        497.575,
+        683.437
+      ],
+      "bbox_min": [
+        -317.707,
+        -248.787,
+        -341.718
+      ],
+      "bbox_max": [
+        317.707,
+        248.787,
+        341.718
+      ],
+      "verts": 5695,
+      "tris": 4419,
+      "materials": 2,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou238E: 4 -> 2 材质"
+      ],
+      "bytes": 1227512
+    },
+    "ou239": {
+      "id": "ou239",
+      "kind": "ships",
+      "parts": [
+        "SB_ou239E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou239a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou239\\ou239.glb",
+      "size_m": [
+        184.566,
+        401.0,
+        128.726
+      ],
+      "bbox_min": [
+        -92.283,
+        -201.0,
+        -67.937
+      ],
+      "bbox_max": [
+        92.283,
+        200.0,
+        60.789
+      ],
+      "verts": 3488,
+      "tris": 2561,
+      "materials": 1,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou239E: 3 -> 1 材质"
+      ],
+      "bytes": 416832
+    },
+    "ou241": {
+      "id": "ou241",
+      "kind": "ships",
+      "parts": [
+        "SB_ou241E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou241a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou241\\ou241.glb",
+      "size_m": [
+        687.445,
+        1123.519,
+        365.204
+      ],
+      "bbox_min": [
+        -343.723,
+        -761.759,
+        -182.602
+      ],
+      "bbox_max": [
+        343.723,
+        361.759,
+        182.602
+      ],
+      "verts": 10029,
+      "tris": 8424,
+      "materials": 4,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou241E: 10 -> 4 材质"
+      ],
+      "bytes": 1464540
+    },
+    "ou242": {
+      "id": "ou242",
+      "kind": "ships",
+      "parts": [
+        "SB_ou242E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou242a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou242\\ou242.glb",
+      "size_m": [
+        350.337,
+        811.813,
+        350.337
+      ],
+      "bbox_min": [
+        -175.169,
+        -503.336,
+        -175.169
+      ],
+      "bbox_max": [
+        175.169,
+        308.477,
+        175.169
+      ],
+      "verts": 3462,
+      "tris": 2886,
+      "materials": 1,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou242E: 4 -> 1 材质"
+      ],
+      "bytes": 404376
+    },
+    "ou251": {
+      "id": "ou251",
+      "kind": "ships",
+      "parts": [
+        "SB_ou251E"
+      ],
+      "source": "F:\\godot\\model\\el\\scn1\\ou251a",
+      "output": "F:\\godot\\ga-rts\\assets\\models\\ships\\ou251\\ou251.glb",
+      "size_m": [
+        87.254,
+        99.77,
+        54.219
+      ],
+      "bbox_min": [
+        -43.627,
+        -49.885,
+        -27.109
+      ],
+      "bbox_max": [
+        43.627,
+        49.885,
+        27.109
+      ],
+      "verts": 5260,
+      "tris": 5138,
+      "materials": 1,
+      "turret_nodes": [],
+      "material_notes": [
+        "SB_ou251E: 3 -> 1 材质"
+      ],
+      "bytes": 780660
+    }
+  }
+}

@@ -5,14 +5,14 @@
 ## 当前状态
 
 **S0 完成**（tag v0.0.1-s0 后续 tag v0.0.2-s0.1）—— 地基、文档基线、数据注册表设计、工具分层
-**S0.5 就绪待开工** —— Blender 4.5.0 已安装，可以写模型管线了
+**S0.5 进行中** —— 模型转换管线已跑通（29 个 glb / 25.9 MB / 4.8 秒），剩余天空烘焙、特效管线、base.tbl
 
 ## 阶段计划
 
 | 阶段 | 目标 | 交付物 | 状态 |
 | --- | --- | --- | --- |
 | **S0** | 地基 | git 仓库、目录骨架、14 份 ADR、架构/尺度/操作/模型管线/数据注册表/工具分层文档、模型清单、Sylpheed 参考侦察 | ✅ 完成 |
-| **S0.5** | 模型管线 | batch_obj2glb.py、天空烘焙、manifest.json、base.tbl 初版 | 待开工（Blender 已就位） |
+| **S0.5** | 模型管线 | batch_obj2glb.py ✅、verify_glb.py ✅、天空烘焙、特效管线、manifest.json ✅、base.tbl 初版 | 进行中 |
 | **S1** | 竖切片 | project.godot 配置（autoload + input map）、最小 main.tscn、焦点轨道相机 + 2D 正交相机、ViewProjection、1 艘船能绕障碍飞到指定点 | 未开始 |
 | **S2** | 模拟闭环 | 状态机 / 索敌 / 开火 / 弹体 / 伤害 / 死亡，两军各 5 单位能打起来 | 未开始 |
 | **S3** | 高度与编队 | 分层高度切换、编队阵型、单位间分离力、仿真精度分层 | 未开始 |
@@ -77,14 +77,29 @@
 ## 下一步（S0.5 详细清单）
 
 1. ~~安装 Blender~~ ✅ 4.5.0
-2. 编写 tools/pipeline/model-pipeline/batch_obj2glb.py：
-   - 输入：F:/godot/model/el/scn1 下 a 档目录 + 选定 ob + 选定 oe
-   - 处理：合并部件、pivot 归位、朝向统一 -Z、材质映射、**按材质合并成 1~2 个 surface**（保证自动 LOD 一致性）
-   - 输出：assets/models/{ships,objects,effects}/<id>/<id>.glb（**无 LOD 变体**）
-   - 生成 tools/pipeline/model-pipeline/manifest.json
-3. 天空球烘焙：ek/axo/stage/*/si_sbg_* → equirectangular 全景 → assets/sky/
-4. 写 content/base.tbl + content/assets/assets.tbl 初版
-5. 用 Godot 打开验证：拖一艘进场景，检查朝向、尺寸、材质、pivot、自动 LOD 是否生效
+2. ~~编写 tools/pipeline/model-pipeline/batch_obj2glb.py~~ ✅
+   - 输入：F:/godot/model/el/scn1 下 a 档目录（b/c 档跳过）
+   - 处理：部件归属过滤、合并非炮塔部件、pivot 归位、按贴图去重材质
+   - 输出：assets/models/{ships,objects}/<id>/<id>.glb（无 LOD 变体）
+   - 生成 tools/pipeline/model-pipeline/manifest.json ✅
+   - **实测结果：29 个逻辑 ID / 25.9 MB / 17.7 万三角面 / 耗时 4.8 秒**
+3. ~~编写 verify_glb.py 回读校验~~ ✅（层级、尺寸、炮塔 pivot��材质去重）
+4. 天空球烘焙：ek/axo/stage/*/si_sbg_* → equirectangular 全景 → assets/sky/
+5. 特效管线：el/scn0 下 oe* 与 ek/axo/effects/si_e* → 粒子/billboard 资源
+6. 写 content/base.tbl + content/assets/assets.tbl 初版
+7. **舰首朝向目视确认**（唯一未验证项）- 进 Godot 看一眼模型是否头朝 -Z
+8. 用 Godot 打开验证：拖一艘进场景，检查尺寸、材质、自动 LOD 是否生效
+
+## 管线已知问题与结论
+
+| 项 | 结论 |
+| --- | --- |
+| 坐标 | OBJ Y上/-Z前 → Blender Z上 → glTF Y上/-Z前，导出后长轴正确落在 Z |
+| 尺度 | 1:1 不缩放，原始单位≈米（无人机 8m / 护卫舰 63m / 主力 764m） |
+| 材质 | 按贴图去重，单舰 6 槽 → 2 个（drawcall 降 3 倍） |
+| 坑 1 | `mesh.materials.clear()` 会重置所有面材质索引，必须先缓存后写回（已修） |
+| 坑 2 | `ob1505a/` 里混着 `SB_ou241E`（属于 ou241），已按 ID 归属剔除（已修） |
+| 坑 3 | map_Ka 不被 Blender 支持，只剩警告，不影响结果 |
 
 ## 待用户拍板（不阻塞）
 
