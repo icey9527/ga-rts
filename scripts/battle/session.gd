@@ -107,6 +107,15 @@ var _data_warnings: Dictionary = {}
 var _shots_wanted := 0
 ## 最近一个 tick 里实际生成的弹体数（T-2.3）
 var _shots_spawned := 0
+
+## 追击（T-2.5）：attack_move 模式下目标超出开火距离就重新拉航线压上去。
+## 节流间隔（秒）—— 寻路是整帧同步求解，不能每 tick 都拉一条线
+const PURSUIT_INTERVAL := 0.5
+## 已经能打到就不用追：留 10% 余量，避开在射程边缘反复起步/刹车
+const PURSUIT_SLACK := 0.9
+## unit_id -> 剩余冷却秒数
+var _pursuit_cooldown: Dictionary = {}
+var _pursuits := 0
 ## 累计命中结算次数（T-2.3）
 var _hits_applied := 0
 
@@ -415,6 +424,7 @@ func tick(dt: float) -> void:
 	_step_targeting(dt)      # 3b 编队级集中选靶（1 秒节流）
 	_step_weapons(dt)        # 3b+ 炮塔瞄准 + 冷却 + 生弹体
 	_step_projectiles(dt)    # 5/6 弹体推进 + 扫掠命中 + 伤害结算（ADR-0013）
+	_step_pursuit(dt)        # 3c+ 追击：打不到就压上去（否则滞回带里永久卡死）
 	_step_unit_movement(dt)  # 3c（含每单位 reset_accumulators）
 	_apply_accumulators()    # 4
 	_resolve_requests()      # 8
@@ -431,6 +441,56 @@ func tick_index() -> int:
 ## 注意：不要拿它绕过 tick 去改单位状态，命中结果只给记录。
 func projectiles() -> ProjectileManager:
 	return _projectiles
+
+
+## ---------------------------------------------------------------- 胜负判定（T-2.5）
+
+## 尚未分出胜负（还有 ≥ 2 队活着，或会战刚开始）
+const NO_WINNER := -1
+## 同归于尽：至少结算过死亡，且现在场上一个活人都没有
+const MUTUAL_DESTRUCTION := -2
+
+
+## 某队的存活单位数
+func alive_count(team: int) -> int:
+	var n := 0
+	for unit in _units:
+		if unit.alive and unit.team == team:
+			n += 1
+	return n
+
+
+## 场上出现过的所有队伍号（升序）。死光了的队也算 —— 胜负判定需要知道“曾经有谁”。
+func teams() -> Array[int]:
+	var seen := {}
+	for unit in _units:
+		seen[unit.team] = true
+	var out: Array[int] = []
+	for key in seen.keys():
+		out.append(int(key))
+	out.sort()
+	return out
+
+
+## 胜负判定：只剩一队有活人 → 返回该队号。
+##
+## 三种“没赢家”要分清，不能都当成 0 队胜：
+##   NO_WINNER (-1)          还在打，或还没开打
+##   MUTUAL_DESTRUCTION (-2) 真打过了（有死亡结算），但现在一个活人都没有
+func winner() -> int:
+	var live: Array[int] = []
+	for team in teams():
+		if alive_count(team) > 0:
+			live.append(team)
+	if live.size() == 1:
+		return live[0]
+	if live.is_empty() and _deaths_settled > 0:
+		return MUTUAL_DESTRUCTION
+	return NO_WINNER
+
+
+func is_battle_over() -> bool:
+	return winner() != NO_WINNER
 
 
 func _step_commands() -> void:
@@ -523,6 +583,43 @@ func _step_projectiles(dt: float) -> void:
 			# 只入队，不在这里改 _units（硬规则 6）
 			request_kill(target.id, int(hit.get("owner_id", -1)))
 	_hits_applied += hits.size()
+
+
+## 3c+ 追击：attack_move 模式下，目标超出开火距离就重新拉航线压上去。
+##
+## **为什么这一步不能省**（T-2.5 实测挖出来的）：
+##   状态机进入 ATTACKING 的门槛是 weapon_range，退出是 1.25×weapon_range。
+##   落在 (range, 1.25×range] 这个滞回带里就彻底卡死：
+##   打不到（超出射程）、也不退（还在滞回带内）、而且没有任何一条边会去追。
+##   实测 5v5 双方各剩 2 艘时相距 2120 m（射程 1800）对望 230 秒，命中数一动不动。
+##
+## 只对 attack_move 生效：普通「移动到 A」的语义是“别管闲事过去”，
+## 自动追敌会让玩家觉得命令不听话（与 _step_moving 的判断口径一致）。
+func _step_pursuit(dt: float) -> void:
+	for unit in _units:
+		if not unit.alive or not unit.attack_move:
+			continue
+		# 已在飞行中就不重算，避免每 0.5 秒把航线重置一次导致船原地画圈
+		if unit.has_active_waypoint():
+			continue
+		var cooldown := float(_pursuit_cooldown.get(unit.id, 0.0)) - dt
+		if cooldown > 0.0:
+			_pursuit_cooldown[unit.id] = cooldown
+			continue
+		var target := _context.unit_by_id(unit.target_id)
+		if target == null:
+			continue
+		# 开火距离 = min(交战距离, 最远炮塔射程)：两个数据源不一致时不赌，取严的
+		var fire_range := unit.weapon_range
+		if unit.weapons != null:
+			var mount_range := unit.weapons.max_range()
+			if mount_range > 0.0:
+				fire_range = minf(fire_range, mount_range)
+		if unit.position.distance_to(target.position) <= fire_range * PURSUIT_SLACK:
+			continue
+		_pursuit_cooldown[unit.id] = PURSUIT_INTERVAL
+		_pursuits += 1
+		_assign_route(unit, target.position)
 
 
 ## 把本 tick 的只读视图刷进 BattleContext（AI 只看它，不看本类）
@@ -661,6 +758,7 @@ func stats() -> Dictionary:
 		"shots_wanted": _shots_wanted,
 		"shots_spawned": _shots_spawned,
 		"hits_applied": _hits_applied,
+		"pursuits": _pursuits,
 		"spawns_settled": _spawns_settled,
 		"deaths_settled": _deaths_settled,
 		"pending_spawns": _spawn_requests.size(),

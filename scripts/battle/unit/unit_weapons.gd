@@ -91,6 +91,22 @@ static func build(unit: Unit, def_id: String, ctx: BattleContext) -> UnitWeapons
 
 
 ## 全部炮塔（副本；炮塔对象本身是引用，改字段会直接影响模拟 —— 约定只读）
+## 全部炮塔里最远的有效射程（米）。没有炮塔返回 0。
+##
+## 为什么单独有这个方法：unit.tbl 的 [weapon] range 是个笼统的「交战距离」，
+## 与本机型实际挂载的武器射程并不一致 ——
+##   ou05  写 1800，但脉冲炮只有 700
+##   ou134 未写（默认值），但重炮有 2000
+## 追击必须压到**真能开火**的距离，否则会停在「状态机认为在射程内、
+## 炮塔却够不着」的空档里，双方永远对望。
+func max_range() -> float:
+	var best := 0.0
+	for mount in _mounts:
+		if mount.def != null:
+			best = maxf(best, mount.def.range)
+	return best
+
+
 func mounts() -> Array[WeaponMount]:
 	var out: Array[WeaponMount] = []
 	out.append_array(_mounts)
