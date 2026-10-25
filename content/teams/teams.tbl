@@ -1,0 +1,10 @@
+; ============================================================
+; 队伍类别的扫描规则。目前还没有队伍数据，目录为空。
+; 加队伍 = 往 content/teams/ 丢一个目录，内含 team.tbl
+; ============================================================
+
+[type.team]
+dir      = content/teams
+manifest = team.tbl
+optional = roster.tbl, emblem.tbl
+id_from  = dirname

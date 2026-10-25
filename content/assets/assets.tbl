@@ -1,0 +1,57 @@
+; ============================================================
+; 资产引用表：逻辑名 -> res://assets/ 下的相对路径（不带扩展名）
+; 代码只认逻辑名（Registry.asset("ou134")），换模型 / 改名只改这张表。
+; 相对路径不带扩展名，引擎按导入产物自动找。
+; ============================================================
+
+[ship]
+ou01         = models/ships/ou01/ou01
+ou02         = models/ships/ou02/ou02
+ou03         = models/ships/ou03/ou03
+ou04         = models/ships/ou04/ou04
+ou05         = models/ships/ou05/ou05
+ou06         = models/ships/ou06/ou06
+ou07         = models/ships/ou07/ou07
+ou09         = models/ships/ou09/ou09
+ou107        = models/ships/ou107/ou107
+ou108        = models/ships/ou108/ou108
+ou134        = models/ships/ou134/ou134
+ou137        = models/ships/ou137/ou137
+ou172        = models/ships/ou172/ou172
+ou231        = models/ships/ou231/ou231
+ou232        = models/ships/ou232/ou232
+ou233        = models/ships/ou233/ou233
+ou234        = models/ships/ou234/ou234
+ou235        = models/ships/ou235/ou235
+ou236        = models/ships/ou236/ou236
+ou237        = models/ships/ou237/ou237
+ou238        = models/ships/ou238/ou238
+ou239        = models/ships/ou239/ou239
+ou241        = models/ships/ou241/ou241
+ou242        = models/ships/ou242/ou242
+ou251        = models/ships/ou251/ou251
+
+; 地面 / 空间道具（props 目录下按 objects 导出的那一批）
+[prop]
+ob1501       = models/objects/ob1501/ob1501
+ob1502       = models/objects/ob1502/ob1502
+ob1504       = models/objects/ob1504/ob1504
+ob1505       = models/objects/ob1505/ob1505
+
+; 天空全景（assets/sky/si_sbg_xxxx.png），供 PanoramaSkyMaterial 使用
+[sky]
+si_sbg_0110  = sky/si_sbg_0110
+si_sbg_0120  = sky/si_sbg_0120
+si_sbg_0310  = sky/si_sbg_0310
+si_sbg_0410  = sky/si_sbg_0410
+si_sbg_0510  = sky/si_sbg_0510
+si_sbg_0610  = sky/si_sbg_0610
+si_sbg_0710  = sky/si_sbg_0710
+si_sbg_0810  = sky/si_sbg_0810
+si_sbg_0820  = sky/si_sbg_0820
+si_sbg_0920  = sky/si_sbg_0920
+si_sbg_1110  = sky/si_sbg_1110
+si_sbg_1120  = sky/si_sbg_1120
+si_sbg_1330  = sky/si_sbg_1330
+si_sbg_1340  = sky/si_sbg_1340
+si_sbg_1350  = sky/si_sbg_1350

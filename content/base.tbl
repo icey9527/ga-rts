@@ -1,0 +1,30 @@
+; ============================================================
+; GA-RTS 数据注册表唯一入口  res://content/base.tbl
+; 整个代码库里唯一写死的路径就是这一行注释上面那个。
+; 结构定义见 docs/data-registry.md 第二节，选型见 docs/adr/0008-data-registry.md
+; ============================================================
+
+[registry]
+; 类别名 -> 类别 TBL（相对 content 根）
+; 带 * 的尚未建立，缺失时注册表只警告并跳过
+units   = units/units.tbl
+teams   = teams/teams.tbl
+maps    = maps/maps.tbl
+assets  = assets/assets.tbl
+audio   = audio/audio.tbl          ; * 待建
+sky     = sky/sky.tbl
+pacing  = config/pacing.tbl        ; * 待建
+
+[roots]
+content = res://content
+assets  = res://assets
+
+[mounts]
+; 运行时按顺序 load_resource_pack，后加载的覆盖先加载的
+; 文件放游戏目录，扩展名用 .dat
+packs = {}
+; packs = {02_content.dat, 03_hd_models.dat}
+
+[debug]
+hot_reload = false          ; 开发期打开，F5 重载 content/ 不重启（尚未实现）
+validate_on_start = true

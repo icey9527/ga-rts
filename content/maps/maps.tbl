@@ -1,0 +1,10 @@
+; ============================================================
+; 地图类别的扫描规则。目前还没有地图数据，目录为空。
+; 加地图 = 往 content/maps/ 丢一个目录，内含 map.tbl
+; ============================================================
+
+[type.map]
+dir      = content/maps
+manifest = map.tbl
+optional = terrain.tbl, spawn.tbl
+id_from  = dirname

@@ -1,0 +1,14 @@
+; ============================================================
+; 天空预设表。
+; 全景贴图本体登记在 content/assets/assets.tbl 的 [sky] 节（逻辑名 si_sbg_xxxx），
+; 本节放"哪个场景用哪张天空"这类预设，不参与目录扫描（没有 content/sky/*/ 目录）。
+; ============================================================
+
+[preset.default]
+panorama = si_sbg_0110
+energy   = 1.0
+rotation:float = 0.0
+
+[preset.skirmish]
+panorama = si_sbg_1340
+energy   = 1.2

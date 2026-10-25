@@ -1,0 +1,11 @@
+; ============================================================
+; 单位类别的扫描规则（不是单位清单！）
+; 加新单位 = 往 content/units/ 丢一个目录，运行时自动发现。
+; 目录名即 ID，manifest 里不重复声明 ID。
+; ============================================================
+
+[type.unit]
+dir      = content/units
+manifest = unit.tbl
+optional = behavior.lua, skill.lua, weapons.tbl, se.tbl   ; 仅登记，暂未参与校验
+id_from  = dirname
