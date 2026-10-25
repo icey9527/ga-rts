@@ -101,6 +101,13 @@ var _last_path_points := 0
 var _data_warnings: Dictionary = {}
 ## 最近一个 tick 里“想开火”的炮塔数（T-2.2）
 var _shots_wanted := 0
+## 最近一个 tick 里实际生成的弹体数（T-2.3）
+var _shots_spawned := 0
+## 累计命中结算次数（T-2.3）
+var _hits_applied := 0
+
+## 弹体管理与扫掠命中检测（ADR-0013）
+var _projectiles := ProjectileManager.new()
 
 
 # ---------------------------------------------------------------- 装配
@@ -371,7 +378,8 @@ func tick(dt: float) -> void:
 	_sync_context()          # AI 只读视图（命令处理完才刷，新生成的单位本 tick 就能被看到）
 	_step_unit_orders(dt)    # 3a 个体状态机
 	_step_targeting(dt)      # 3b 编队级集中选靶（1 秒节流）
-	_step_weapons(dt)        # 3b+ 炮塔瞄准与冷却（只报“想开火”数，不生弹体）
+	_step_weapons(dt)        # 3b+ 炮塔瞄准 + 冷却 + 生弹体
+	_step_projectiles(dt)    # 5/6 弹体推进 + 扫掠命中 + 伤害结算（ADR-0013）
 	_step_unit_movement(dt)  # 3c（含每单位 reset_accumulators）
 	_apply_accumulators()    # 4
 	_resolve_requests()      # 8
@@ -430,7 +438,46 @@ func _step_weapons(dt: float) -> void:
 		if target == null:
 			unit.weapons.tick_cooldowns(dt)
 			continue
-		_shots_wanted += unit.weapons.tick(unit, target.position, dt)
+		var wanted: int = unit.weapons.tick(unit, target.position, dt)
+		_shots_wanted += wanted
+		_shots_spawned += _spawn_shots(unit, target, wanted)
+
+
+## 把「想开火」变成真弹体。弹体本身不做任何命中判断，只负责运动学。
+func _spawn_shots(unit: Unit, target: Unit, count: int) -> int:
+	if count <= 0:
+		return 0
+	var mounts := unit.weapons.mounts()
+	if mounts.is_empty():
+		return 0
+	var spawned := 0
+	for i in count:
+		var mount: WeaponMount = mounts[i % mounts.size()]
+		var def: WeaponDef = mount.def
+		if def == null:
+			continue
+		var origin := unit.position + unit.forward * unit.radius * 0.9 + mount.local_offset
+		var dir := target.position - origin
+		_projectiles.spawn(origin, dir, def.projectile_speed, def.damage,
+			unit.team, unit.id, 0.8, 4.0)
+		spawned += 1
+	return spawned
+
+
+## 第 5/6 步：弹体推进 + 扫掠命中（ADR-0013）。
+##
+## 命中只产记录，**伤害在目标侧结算**：ProjectileManager 不碰单位状态，
+## apply_damage() 是唯一伤害入口。这样弹体可以单独测、将来做回放不用重算物理。
+func _step_projectiles(dt: float) -> void:
+	if _projectiles.active_count() == 0:
+		return
+	var hits := _projectiles.tick(_units, dt)
+	for hit in hits:
+		var target := _context.unit_by_id(hit["target_id"])
+		if target == null:
+			continue
+		target.apply_damage(hit["damage"])
+	_hits_applied += hits.size()
 
 
 ## 把本 tick 的只读视图刷进 BattleContext（AI 只看它，不看本类）

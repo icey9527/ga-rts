@@ -123,6 +123,13 @@ var _route_finished := false
 
 var alive := true
 
+## 生命值（T-2.3）。数据来自 unit.tbl 的 [stats] max_hp，由 UnitDef 装配。
+## 伤害结算在目标侧发生（ADR-0013：命中只给信号，弹体不改单位状态）。
+var max_hp := 1.0
+var hp := 1.0
+## 累计承受伤害（诊断用，验证「伤害只结算一次」）
+var damage_taken := 0.0
+
 # ---------------------------------------------------------------- 累加器（每 tick 由 Simulation 清零）
 
 ## 本 tick 位移增量（米）
@@ -283,6 +290,27 @@ func velocity() -> Vector3:
 ## 本卡没有伤害系统：验证场景 / 调试面板手工调用；S2 的伤害结算也调它。
 func mark_damaged() -> void:
 	recently_damaged = true
+
+
+## 结算伤害（唯一的伤害入口）。返回本次是否致死。
+## 与 mark_damaged 分开：recently_damaged 只标记「刚被打」，供索敌用。
+func apply_damage(amount: float) -> bool:
+	if not alive or amount <= 0.0:
+		return false
+	damage_taken += amount
+	hp -= amount
+	mark_damaged()
+	if hp <= 0.0:
+		hp = 0.0
+		alive = false
+		return true
+	return false
+
+
+func hp_ratio() -> float:
+	if max_hp <= 0.0:
+		return 0.0
+	return clampf(hp / max_hp, 0.0, 1.0)
 
 
 func clear_damaged() -> void:
