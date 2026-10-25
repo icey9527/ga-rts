@@ -16,10 +16,17 @@ extends RefCounted
 ##   ✅ 持有障碍表（NavObstacle）并同步给 NavigationService
 ##   ✅ 订阅 CommandBus.command_issued → 在 tick 开头 flush（九步的第 1 步）
 ##   ✅ 按固定顺序驱动移动：reset_accumulators → UnitMovement.step → apply_accumulators
+##   ✅ 按 team 自动分编队（Squad），每 tick 把只读视图刷进 BattleContext
+##   ✅ 九步里的第 3 步按文档顺序拆成三段：状态机决策 → 索敌（节流）→ 移动累积
 ##   ✅ 诊断计数（命令 / 路径 / 不可达）
 ##   ❌ 不做仲裁（CommandBus 内部，硬规则 1）
+##   ❌ 不做选靶算法（Targeting）/ 状态迁移（UnitStates）—— 本类只按顺序调用它们
 ##   ❌ 不写 Unit 的 position / route（那是 UnitMovement 与命令处理的职责）
 ##   ❌ 不碰任何场景节点 / 渲染（硬规则 4）
+##
+## AI 接线为什么集中在这里而不是散到各处：
+##   九步顺序是硬规则（ARCHITECTURE「模拟循环顺序」）。"谁先谁后"只允许有一处实现，
+##   否则某天有人在 UnitMovement 里顺手补一句"发现敌人就切状态"，顺序就废了。
 ##
 ## 命令为什么先入队再在 tick 里处理：
 ##   command_issued 是"已接受"的信号，不是"立刻执行"的授权。
@@ -61,6 +68,14 @@ var _obstacles_dirty := false
 
 ## 本会话的单位（顺序 = 生成顺序；遍历顺序稳定 = 可回放）
 var _units: Array[Unit] = []
+## 本会话的编队（一队一个，按 team 自动生成；顺序 = 首次出现该队伍的生成顺序）
+var _squads: Array[Squad] = []
+## 下一个编队 ID（1 起，单调递增）
+var _next_squad_id := 1
+## 集中选靶（编队级共享目标，1 秒节流 —— ADR-0012 机制 #1）
+var _targeting := Targeting.new()
+## AI 只读上下文（每 tick 刷一次，避免 AI 直接摸本类）
+var _context := BattleContext.new()
 ## 下一个分配的运行时 ID（1 起，单调递增）
 var _next_id := 1
 
@@ -115,8 +130,9 @@ func shutdown() -> void:
 
 
 ## 从注册表生成一艘单位。def_id = 目录名（如 ou134）；position = 世界坐标（米）。
+## team = 队伍号（决定归属哪个 Squad，以及索敌时的敌我判定）。
 ## 返回 null 表示数据不可用（未知 ID / 缺关键统计），错误已由 Registry / 本类报出。
-func spawn_unit(def_id: String, position: Vector3) -> Unit:
+func spawn_unit(def_id: String, position: Vector3, team: int = 0) -> Unit:
 	if _registry == null:
 		push_error("[BattleSession] Registry 未注入，无法生成单位 '%s'" % def_id)
 		return null
@@ -137,6 +153,7 @@ func spawn_unit(def_id: String, position: Vector3) -> Unit:
 	_next_id += 1
 	def.apply_to(unit)
 	unit.position = position
+	unit.team = team
 	# 生成瞬间：机头默认 -Z，速度 0（不继承任何前一个单位的残余状态）
 	unit.forward = Unit.DEGENERATE_FORWARD
 	unit.speed = 0.0
@@ -144,8 +161,25 @@ func spawn_unit(def_id: String, position: Vector3) -> Unit:
 	unit.reset_accumulators()
 
 	_units.append(unit)
+	_attach_to_squad(unit)
 	unit_spawned.emit(unit)
 	return unit
+
+
+## 本会话的编队（副本）。编队按 team 自动生成，本卡没有"手动编队"指令。
+func squads() -> Array[Squad]:
+	var out: Array[Squad] = []
+	out.append_array(_squads)
+	return out
+
+
+func squad_count() -> int:
+	return _squads.size()
+
+
+## AI 只读上下文（验证场景 / 调试面板用；AI 自己拿到的就是这一个对象）
+func context() -> BattleContext:
+	return _context
 
 
 ## 本会话的单位列表（副本；调用方不得原地改）
@@ -215,10 +249,14 @@ func handle_command(cmd: Dictionary) -> void:
 					String(kind), type_string(typeof(point))])
 				_ignored_commands += 1
 				return
+			# 攻防模式写进 Unit，由状态机决定"途中遇敌要不要拐一下"（UnitStates._step_moving）
+			var is_attack := kind == CMD_ATTACK_MOVE
 			for unit in targets:
+				unit.attack_move = is_attack
 				_assign_route(unit, point)
 		CMD_STOP:
 			for unit in targets:
+				unit.attack_move = false
 				unit.clear_route()
 		_:
 			# 攻击 / 改高度层等：S1 不实现，记数不报错（命令本身是合法的，只是还没有系统接）
@@ -243,9 +281,24 @@ func _assign_route(unit: Unit, point: Vector3) -> void:
 		_unreachable += 1
 		unit.clear_route()
 		return
+	_fix_start_point(path, unit.position)
 	unit.set_route(path)
 	_routes_assigned += 1
 	route_assigned.emit(unit, path)
+
+
+## 路径首点的语义是「你脚下」，但 NavGraph 统一把整条路径的 Y 写成层高。
+## 对 cruise_altitude ≠ 0 的机型（ou05 偏 +80 m）首点会落在船正上方 80 m：
+## 3D 到站判定（Unit.ARRIVAL_RADIUS = 2 m）永远差这 80 m，船会绕着首点打转
+## （转弯半径 = v/ω ≈ 90 m 接近剩余距离，于是原地转圈），永远飞不到第二点。
+## 所以把首点改写成本身的实际位置。**点数不变、后续点一个不改** ——
+## 不影响寻路层的几何保证（膨胀 / 撑开），也不改导航服务的语义。
+static func _fix_start_point(path: PackedVector3Array, position: Vector3) -> void:
+	if path.is_empty():
+		return
+	var xz := Vector2(path[0].x - position.x, path[0].z - position.z)
+	if xz.length() <= Unit.ARRIVAL_RADIUS:
+		path[0] = position
 
 
 ## 命令目标 → 本会话的单位列表。
@@ -291,10 +344,16 @@ func _on_command_issued(unit_or_group: Variant, kind: StringName, options: Dicti
 
 
 ## 走一个固定步长。顺序遵循 docs/ARCHITECTURE.md 的「模拟循环顺序」：
-##   1 命令 flush → 3 单位移动累积（reset → UnitMovement.step）→ 4 累加器统一应用
-##   → 8 请求表结算（死亡清理）
+##   1 命令 flush
+##   → 3 单位决策：3a 状态机 → 3b 索敌（节流）→ 3c 移动累积（reset → UnitMovement.step）
+##   → 4 累加器统一应用
+##   → 8 请求表结算（死亡清理 + 编队重建）
 ## 第 2 / 5 / 6 / 7 / 9 步在 S1 还没有内容（时钟 / 弹体 / 命中 / 技能 / 快照），
 ## 归由 Simulation 与后续卡处理；本类只负责第 1、3、4、8 步里与单位相关的部分。
+##
+## 为什么 3a 在 3b 之前：ARCHITECTURE 写的就是「状态机决策 → 索敌 → 移动累积」。
+## 代价是状态机看到的是上一 tick 的共享目标（索敌本身 1 秒才扫一次，这一个 tick 的延迟
+## 完全被节流吞掉了），换来的是"顺序只有文档一个来源"。
 func tick(dt: float) -> void:
 	if dt <= 0.0 or not is_finite(dt):
 		push_error("[BattleSession] dt 非法（%f），跳过本次 tick" % dt)
@@ -303,10 +362,13 @@ func tick(dt: float) -> void:
 	# 寻路时间预算按 tick 记账（S1 同步求解；接口先接上，S3 换成分帧摊销）
 	_nav.reset_frame()
 
-	_step_commands()      # 1
-	_step_unit_movement(dt)  # 3（含每单位 reset_accumulators）
-	_apply_accumulators()  # 4
-	_resolve_requests()    # 8
+	_step_commands()         # 1
+	_sync_context()          # AI 只读视图（命令处理完才刷，新生成的单位本 tick 就能被看到）
+	_step_unit_orders(dt)    # 3a 个体状态机
+	_step_targeting(dt)      # 3b 编队级集中选靶（1 秒节流）
+	_step_unit_movement(dt)  # 3c（含每单位 reset_accumulators）
+	_apply_accumulators()    # 4
+	_resolve_requests()      # 8
 
 	_tick_index += 1
 
@@ -335,6 +397,25 @@ func _step_unit_movement(dt: float) -> void:
 		UnitMovement.step(unit, dt, _layer_height)
 
 
+## 3a 个体状态机（UnitStates）。只写 state / state_time / state_changes，不动位置。
+func _step_unit_orders(dt: float) -> void:
+	for unit in _units:
+		if not unit.alive:
+			continue
+		UnitStates.step(unit, _context, dt)
+
+
+## 3b 编队级集中选靶（Targeting）。节流在它内部，本类不做“隔几个 tick 才跳”的分支 ——
+## 节流阈值只有一个来源（Targeting.SCAN_INTERVAL）。
+func _step_targeting(dt: float) -> void:
+	_targeting.update(_context, dt)
+
+
+## 把本 tick 的只读视图刷进 BattleContext（AI 只看它，不看本类）
+func _sync_context() -> void:
+	_context.sync(_units, _squads, _tick_index)
+
+
 func _apply_accumulators() -> void:
 	for unit in _units:
 		if not unit.alive:
@@ -342,7 +423,7 @@ func _apply_accumulators() -> void:
 		unit.apply_accumulators()
 
 
-## 第 8 步里与单位相关的部分：死亡清理。遍历中不改集合（硬规则 6），先收集再重建。
+## 第 8 步里与单位相关的部分：死亡清理 + 编队重建。遍历中不改集合（硬规则 6），先收集再重建。
 func _resolve_requests() -> void:
 	var has_dead := false
 	for unit in _units:
@@ -356,6 +437,7 @@ func _resolve_requests() -> void:
 		if unit.alive:
 			survivors.append(unit)
 	_units = survivors
+	_rebuild_squads()
 
 
 # ---------------------------------------------------------------- 诊断
@@ -366,11 +448,18 @@ func _resolve_requests() -> void:
 func stats() -> Dictionary:
 	var active_routes := 0
 	var arrived := 0
+	var states := {}
 	for unit in _units:
 		if unit.has_active_waypoint():
 			active_routes += 1
 		if unit.is_route_finished() and not unit.route.is_empty():
 			arrived += 1
+		var name := UnitStates.state_name(unit.state)
+		states[name] = int(states.get(name, 0)) + 1
+	var squads_with_target := 0
+	for squad in _squads:
+		if squad.has_target():
+			squads_with_target += 1
 	return {
 		"units": _units.size(),
 		"active_routes": active_routes,
@@ -386,7 +475,15 @@ func stats() -> Dictionary:
 		"obstacles": _obstacles.size(),
 		"layer_height": _layer_height,
 		"ticks": _tick_index,
+		"squads": _squads.size(),
+		"squads_with_target": squads_with_target,
+		"states": states,
 	}
+
+
+## 集中选靶的计量快照（扫描次数 / 候选数 / 目标切换次数）
+func targeting_stats() -> Dictionary:
+	return _targeting.stats()
 
 
 ## 寻路服务的计量快照（请求数 / 耗时 / 节点数 / 预算）
@@ -401,6 +498,36 @@ func data_warnings() -> Dictionary:
 
 
 # ---------------------------------------------------------------- 内部
+
+
+## 把一个单位挂到它 team 对应的编队上。没有就新建一个（本卡一队一个编队）。
+## 为什么不按“选中框”分编队：S1 没有编队指令，能自动分组的唯一依据就是队伍号。
+func _attach_to_squad(unit: Unit) -> void:
+	for squad in _squads:
+		if squad.team == unit.team:
+			squad.add_unit(unit)
+			return
+	var squad := Squad.new(_next_squad_id, unit.team)
+	_next_squad_id += 1
+	squad.add_unit(unit)
+	_squads.append(squad)
+
+
+## 死亡清理后重建编队成员表（只在本 tick 真有人死时才调，见 _resolve_requests）。
+## 空编队直接丢弃：一个没有活人的 Squad 留在表里只会让寻敌循环多跑一圈空集。
+## 不担心“队伍全员阵亡后编队消失”：同队新单位生成时 _attach_to_squad 会重建一个。
+func _rebuild_squads() -> void:
+	var surviving: Array[Squad] = []
+	for squad in _squads:
+		var members: Array[Unit] = []
+		for unit in squad.units:
+			if unit.alive and _units.has(unit):
+				members.append(unit)
+		squad.units = members
+		if members.is_empty():
+			continue
+		surviving.append(squad)
+	_squads = surviving
 
 
 ## 障碍表脏了才推给寻路服务（NavigationService 会浅拷一份，所以只在变更后同步）

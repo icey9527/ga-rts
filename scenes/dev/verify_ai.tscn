@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/dev/verify_ai.gd" id="1_verify_ai"]
+
+[node name="VerifyAI" type="Node3D"]
+script = ExtResource("1_verify_ai")

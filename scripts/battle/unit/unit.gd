@@ -41,6 +41,30 @@ const EPSILON := 1.0e-9
 var id := 0
 ## 机型逻辑 ID（= content/units 下的目录名）。表现层拿它去注册表换模型路径（硬规则 5）。
 var def_id := ""
+## 队伍号（0 = 未指定）。编队按 team 自动分（Squad），索敌按 team 判敌我。
+var team := 0
+
+# ---------------------------------------------------------------- AI 状态
+#
+# 这一组字段由 AI 层写（UnitStates / Targeting），别的层只读：
+#   state / state_time / state_changes   ← UnitStates（个体状态机）
+#   target_id                            ← Targeting（编队共享目标的个体镜像）
+# 状态机的枚举值是 UnitStates.State，这里刻意只存 int 而不是写 UnitStates.State 类型：
+# unit.gd 与 unit_states.gd 会互相引用，用 int 打断这个循环，两边的加载顺序就无关紧要了。
+
+## 个体状态（值域 = UnitStates.State，默认 IDLE = 0）
+var state := 0
+## 在当前状态里待了多久（秒，UnitStates 每 tick 累加；切状态清零）
+var state_time := 0.0
+## 状态切换累计次数（诊断 / 验证用例）
+var state_changes := 0
+## 当前目标 id（Squad.NO_TARGET = -1 表示无目标）。**只有 Targeting 写**，状态机只读
+var target_id := -1
+## 本单是 attack_move 模式（途中遇敌会自己切 ATTACKING）。普通 move 命令写 false
+var attack_move := false
+## 最近挨过打（被咬尾判定用，Targeting 的「后方优先」看它）。
+## 本卡没有伤害系统，由 mark_damaged() 手工打点；S2 的伤害结算调同一个函数。
+var recently_damaged := false
 
 # ---------------------------------------------------------------- 运动状态
 #
@@ -74,6 +98,10 @@ var radius := 20.0
 ## 巡航高度偏好：**相对本层中心**的偏移（米），±150 m 带内有效（ADR-0003）。
 ## 0 = 就在本层中心。绝对高度（-400 / 0 / +400）由层给，不在这里重复写死。
 var cruise_altitude := 0.0
+## 武器射程（米）。docs/scale-and-units.md：普通武器 500 m ~ 2 km。
+## 默认值取 ou05 的 TBL range（1800 m）—— S1 的武器表还没进 UnitDef，
+## S2 武器卡把它改成从 [weapon] range 装配（那时这个默认值只留给手搓单位）。
+var weapon_range := 1800.0
 
 # ---------------------------------------------------------------- 航线
 
@@ -235,6 +263,23 @@ func pitch_degrees() -> float:
 ## 机头水平朝向（度，绕世界 +Y；0 = 朝 -Z，正值朝 -X）
 func yaw_degrees() -> float:
 	return rad_to_deg(atan2(-forward.x, -forward.z))
+
+## 速度矢量（m/s）。位移恒沿机头方向，所以它就是 forward × speed。
+## Targeting 的「预计接近时间」用它算相对接近速度。
+func velocity() -> Vector3:
+	return forward * speed
+
+
+# ---------------------------------------------------------------- 受伤标记（AI 感知）
+
+## 打上「刚挨打」标记。Targeting 看到它就会优先反手打背后的敌人（ADR-0012 机制 #1）。
+## 本卡没有伤害系统：验证场景 / 调试面板手工调用；S2 的伤害结算也调它。
+func mark_damaged() -> void:
+	recently_damaged = true
+
+
+func clear_damaged() -> void:
+	recently_damaged = false
 
 
 func describe() -> String:

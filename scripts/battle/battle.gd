@@ -211,7 +211,8 @@ func _spawn_units() -> void:
 		return
 	for entry in _map.spawns:
 		var def_id := entry.unit_id
-		var unit := _session.spawn_unit(def_id, entry.position)
+		# 队伍号来自地图表（[spawn.<名字>] team），BattleSession 按它自动分编队
+		var unit := _session.spawn_unit(def_id, entry.position, entry.team)
 		if unit == null:
 			push_error("[battle] 单位 '%s' 生成失败（见上方 Registry 报错）" % def_id)
 			continue
