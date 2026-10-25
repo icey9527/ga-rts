@@ -472,7 +472,8 @@ def main():
     ap.add_argument("--dst", default=DEFAULT_DST)
     ap.add_argument("--only", default=None)
     ap.add_argument("--limit", type=int, default=None)
-    ap.add_argument("--flip-forward", action="store_true")
+    ap.add_argument("--no-flip", action="store_true",
+                    help="关闭舰首 180 度翻转。实测素材舰首在 +Z，必须翻转到 -Z（Godot 前向），故默认开启")
     ap.add_argument("--no-export", action="store_true")
     ap.add_argument("--manifest", default=None)
     args = ap.parse_args(argv)
@@ -483,7 +484,8 @@ def main():
 
     log(f"素材源 {src}")
     log(f"输出到 {dst}")
-    log(f"翻转前向 {args.flip_forward} | 只导出报告 {args.no_export}")
+    flip_forward = not args.no_flip
+    log(f"翻转前向 {flip_forward}（默认开启）| 只导出报告 {args.no_export}")
 
     jobs = collect_jobs(src, only, args.limit)
     if not jobs:
@@ -503,7 +505,7 @@ def main():
 
         log(f"处理 {lid} …")
         try:
-            r = process_one(lid, job, dst, args.flip_forward, not args.no_export)
+            r = process_one(lid, job, dst, flip_forward, not args.no_export)
         except Exception as e:
             log(f"  !! {lid} 失败: {e}")
             import traceback

@@ -11,7 +11,8 @@
 | 文件 | 作用 | 状态 |
 | --- | --- | --- |
 | `batch_obj2glb.py` | OBJ → GLB 批量转换（Blender headless） | ✅ 可用，已跑通 29 个模型 |
-| `verify_glb.py` | 回读校验：层级 / 尺寸 / 朝向 / 炮塔 pivot / 材质去重 | ✅ 可用 |
+| `verify_glb.py` | 回读校验：层级 / 尺寸 / 材质去重 / 炮塔 pivot | ✅ 可用 |
+| `render_preview.py` | 正交预览渲染，用于目视确认舰首朝向 | ✅ 可用 |
 | `inventory-scn1.csv` | 全量 OBJ 统计（顶点/面/材质），生成物，已 gitignore | ✅ |
 | `manifest.json` | 逻辑 ID → 尺寸 / 面数 / 材质 / 炮塔节点，供 AssetCatalog 用 | ✅ 自动生成 |
 
@@ -41,10 +42,11 @@ blender.exe -b -P batch_obj2glb.py -- --no-export
 blender.exe -b -P verify_glb.py -- assets/models/ships/ou05/ou05.glb
 ```
 
-舰首方向猜错时（**先目视确认再改**）：
+舰首方向（实测结论）：**素材舰首在 +Z，必须翻转 180° 到 -Z**。
+脚本**默认已开启翻转**，无需额外参数。只在你确定判断错时才用：
 
 ```
-blender.exe -b -P batch_obj2glb.py -- --flip-forward
+blender.exe -b -P batch_obj2glb.py -- --no-flip
 ```
 
 ## 坐标推导（改之前必须先读懂）
@@ -60,7 +62,9 @@ glTF/Godot Y 上、-Z 前      ← Godot 前向就是 -Z
 所以素材里 **+Z 若为舰首，导出后舰首正好在 Godot 的 -Z**，符合惯例。
 校验脚本报告的是转换后的 Godot 尺寸（X 宽 / Y 高 / Z 前后）。
 
-> ⚠️ 校验脚本测的是**尺寸**，不是朝向。舰首朝 +Z 还是 -Z **无法自动判定**，必须进 Godot 目视确认。
+> ✅ 已实测确认：素材舰首在 +Z，引擎喷口在 -Z。翻转 180° 后在 `side_x` 视角
+> （相机在 +X、屏幕右方 = -Z）下舰首朝屏幕右侧，与 Godot 前向 -Z 一致。
+> 依赖脚本默认翻转（加 `--no-flip` 才会关闭）。
 
 ## 尺度
 
@@ -113,7 +117,7 @@ glTF/Godot Y 上、-Z 前      ← Godot 前向就是 -Z
 
 ## 待办
 
-- [ ] **舰首朝向目视确认**（唯一未验证项，进 Godot 看一眼即可定论）
+- [x] 舰首朝向确认（渲染图 + Godot 目测双重验证，脚本默认翻转）
 - [ ] 特效管线 `oe*` / `si_e*`（单独脚本，走粒子/billboard 而非网格）
 - [ ] 天空球烘焙 `bake_sky.py`（`ek/axo/stage/*/si_sbg_*` → equirectangular 全景）
 - [ ] 武器挂点：模型里没有空节点，炮口位置需按武器类型在资源表里配偏移

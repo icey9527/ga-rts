@@ -87,7 +87,7 @@
 4. 天空球烘焙：ek/axo/stage/*/si_sbg_* → equirectangular 全景 → assets/sky/
 5. 特效管线：el/scn0 下 oe* 与 ek/axo/effects/si_e* → 粒子/billboard 资源
 6. 写 content/base.tbl + content/assets/assets.tbl 初版
-7. **舰首朝向目视确认**（唯一未验证项）- 进 Godot 看一眼模型是否头朝 -Z
+7. ~~**舰首朝向目视确认**~~ ✅ 已确认：素材舰首在 +Z，需翻转 180°，脚本默认已开启
 8. 用 Godot 打开验证：拖一艘进场景，检查尺寸、材质、自动 LOD 是否生效
 
 ## 管线已知问题与结论
@@ -95,6 +95,7 @@
 | 项 | 结论 |
 | --- | --- |
 | 坐标 | OBJ Y上/-Z前 → Blender Z上 → glTF Y上/-Z前，导出后长轴正确落在 Z |
+| 舰首 | **素材舰首在 +Z，引擎喷口在 -Z**。翻转 180° 后舰首指向 -Z，与 Godot 前向一致。管线默认翻转 |
 | 尺度 | 1:1 不缩放，原始单位≈米（无人机 8m / 护卫舰 63m / 主力 764m） |
 | 材质 | 按贴图去重，单舰 6 槽 → 2 个（drawcall 降 3 倍） |
 | 坑 1 | `mesh.materials.clear()` 会重置所有面材质索引，必须先缓存后写回（已修） |

@@ -33,7 +33,7 @@
       "material_notes": [
         "SB_ob1501A: 10 -> 4 材质"
       ],
-      "bytes": 2253736
+      "bytes": 2253776
     },
     "ob1502": {
       "id": "ob1502",
@@ -65,7 +65,7 @@
       "material_notes": [
         "SB_ob1502A: 8 -> 4 材质"
       ],
-      "bytes": 1428600
+      "bytes": 1428644
     },
     "ob1504": {
       "id": "ob1504",
@@ -97,7 +97,7 @@
       "material_notes": [
         "SB_ob1504A: 11 -> 4 材质"
       ],
-      "bytes": 1624520
+      "bytes": 1624564
     },
     "ob1505": {
       "id": "ob1505",
@@ -129,7 +129,7 @@
       "material_notes": [
         "SB_ob1505A: 8 -> 4 材质"
       ],
-      "bytes": 1366384
+      "bytes": 1366428
     },
     "ou01": {
       "id": "ou01",
@@ -161,7 +161,7 @@
       "material_notes": [
         "SB_ou01E: 6 -> 2 材质"
       ],
-      "bytes": 893020
+      "bytes": 893064
     },
     "ou02": {
       "id": "ou02",
@@ -193,7 +193,7 @@
       "material_notes": [
         "SB_ou02E: 6 -> 2 材质"
       ],
-      "bytes": 921072
+      "bytes": 921116
     },
     "ou03": {
       "id": "ou03",
@@ -225,7 +225,7 @@
       "material_notes": [
         "SB_ou03E: 6 -> 2 材质"
       ],
-      "bytes": 948704
+      "bytes": 948748
     },
     "ou04": {
       "id": "ou04",
@@ -257,7 +257,7 @@
       "material_notes": [
         "SB_ou04E: 6 -> 2 材质"
       ],
-      "bytes": 1155876
+      "bytes": 1155916
     },
     "ou05": {
       "id": "ou05",
@@ -292,7 +292,7 @@
       "material_notes": [
         "SB_ou05E_body: 6 -> 2 材质"
       ],
-      "bytes": 1183992
+      "bytes": 1184032
     },
     "ou06": {
       "id": "ou06",
@@ -324,7 +324,7 @@
       "material_notes": [
         "SB_ou06E: 6 -> 2 材质"
       ],
-      "bytes": 1083732
+      "bytes": 1083772
     },
     "ou07": {
       "id": "ou07",
@@ -354,7 +354,7 @@
       "materials": 1,
       "turret_nodes": [],
       "material_notes": [],
-      "bytes": 80164
+      "bytes": 80204
     },
     "ou09": {
       "id": "ou09",
@@ -386,7 +386,7 @@
       "material_notes": [
         "SB_ou09E: 2 -> 1 材质"
       ],
-      "bytes": 27432
+      "bytes": 27476
     },
     "ou107": {
       "id": "ou107",
@@ -418,7 +418,7 @@
       "material_notes": [
         "SB_ou107E: 6 -> 2 材质"
       ],
-      "bytes": 1185320
+      "bytes": 1185360
     },
     "ou108": {
       "id": "ou108",
@@ -450,7 +450,7 @@
       "material_notes": [
         "SB_ou108E: 6 -> 3 材质"
       ],
-      "bytes": 980200
+      "bytes": 980240
     },
     "ou134": {
       "id": "ou134",
@@ -482,7 +482,7 @@
       "material_notes": [
         "SB_ou134E_body: 2 -> 1 材质"
       ],
-      "bytes": 598984
+      "bytes": 599028
     },
     "ou137": {
       "id": "ou137",
@@ -514,7 +514,7 @@
       "material_notes": [
         "SB_ou137E_body: 2 -> 1 材质"
       ],
-      "bytes": 636132
+      "bytes": 636176
     },
     "ou172": {
       "id": "ou172",
@@ -546,7 +546,7 @@
       "material_notes": [
         "SB_ou172E: 2 -> 1 材质"
       ],
-      "bytes": 626252
+      "bytes": 626292
     },
     "ou231": {
       "id": "ou231",
@@ -578,7 +578,7 @@
       "material_notes": [
         "SB_ou231E: 3 -> 1 材质"
       ],
-      "bytes": 407684
+      "bytes": 407728
     },
     "ou232": {
       "id": "ou232",
@@ -610,7 +610,7 @@
       "material_notes": [
         "SB_ou232E: 2 -> 1 材质"
       ],
-      "bytes": 572568
+      "bytes": 572608
     },
     "ou233": {
       "id": "ou233",
@@ -642,7 +642,7 @@
       "material_notes": [
         "SB_ou233E: 2 -> 1 材质"
       ],
-      "bytes": 558072
+      "bytes": 558116
     },
     "ou234": {
       "id": "ou234",
@@ -674,7 +674,7 @@
       "material_notes": [
         "SB_ou234E: 6 -> 2 材质"
       ],
-      "bytes": 645032
+      "bytes": 645076
     },
     "ou235": {
       "id": "ou235",
@@ -706,7 +706,7 @@
       "material_notes": [
         "SB_ou235E: 5 -> 2 材质"
       ],
-      "bytes": 719608
+      "bytes": 719652
     },
     "ou236": {
       "id": "ou236",
@@ -738,7 +738,7 @@
       "material_notes": [
         "SB_ou236E: 3 -> 1 材质"
       ],
-      "bytes": 404836
+      "bytes": 404876
     },
     "ou237": {
       "id": "ou237",
@@ -770,7 +770,7 @@
       "material_notes": [
         "SB_ou237E: 4 -> 2 材质"
       ],
-      "bytes": 1144496
+      "bytes": 1144536
     },
     "ou238": {
       "id": "ou238",
@@ -802,7 +802,7 @@
       "material_notes": [
         "SB_ou238E: 4 -> 2 材质"
       ],
-      "bytes": 1227512
+      "bytes": 1227552
     },
     "ou239": {
       "id": "ou239",
@@ -834,7 +834,7 @@
       "material_notes": [
         "SB_ou239E: 3 -> 1 材质"
       ],
-      "bytes": 416832
+      "bytes": 416876
     },
     "ou241": {
       "id": "ou241",
@@ -866,7 +866,7 @@
       "material_notes": [
         "SB_ou241E: 10 -> 4 材质"
       ],
-      "bytes": 1464540
+      "bytes": 1464584
     },
     "ou242": {
       "id": "ou242",
@@ -898,7 +898,7 @@
       "material_notes": [
         "SB_ou242E: 4 -> 1 材质"
       ],
-      "bytes": 404376
+      "bytes": 404420
     },
     "ou251": {
       "id": "ou251",
@@ -930,7 +930,7 @@
       "material_notes": [
         "SB_ou251E: 3 -> 1 材质"
       ],
-      "bytes": 780660
+      "bytes": 780700
     }
   }
 }

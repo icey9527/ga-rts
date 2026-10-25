@@ -38,3 +38,6 @@ desktop.ini
 
 # tools/ 已用 .gdignore 屏蔽，此处兜底
 *.csv.import
+
+# 预览渲染产物（开发期检查用，可随时重跑）
+/tools/pipeline/model-pipeline/preview/
