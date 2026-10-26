@@ -114,12 +114,11 @@ func bind_session(session: BattleSession) -> void:
 	_session = session
 	if session == null:
 		return
-	# 鸭子类型而不是直接 session.unit_died.connect()：
-	# 会话可能被换成测试替身（只声明了 units()），没有信号也不该报错
-	if session.has_signal(&"unit_died"):
-		var handler := Callable(self, &"_on_unit_died")
-		if not session.is_connected(&"unit_died", handler):
-			session.connect(&"unit_died", handler)
+	# 战损播报已**迁到 CommsPanel**（右侧通讯列：头像 + 打字机 + 多条气泡）。
+	# 这里故意不再接 unit_died —— 两边都播报会让同一条消息出现两次，
+	# 而且 HUD 那行是纯文字，信息量远低于气泡。
+	# 保留 _notices 相关字段与绘制路径（_notices 永远为空，不会画东西），
+	# 免得为了删几行而弄断已有验证场景引用的接口。
 
 
 ## 当前绑定的会话（诊断 / 验证用；会返回 null，调用方要自己判）

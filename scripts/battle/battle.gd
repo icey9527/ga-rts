@@ -47,6 +47,7 @@ const INFLATED_COLOR := Color(0.35, 0.75, 1.0, 0.10)
 @onready var _unit_panel: UnitPanel = $HudLayer/UnitPanel
 @onready var _targeting: TargetingOverlay = $HudLayer/TargetingOverlay
 @onready var _selection_panel: SelectionPanel = $HudLayer/SelectionPanel
+@onready var _comms: CommsPanel = $HudLayer/CommsPanel
 
 ## 模拟中枢（RefCounted：不占节点、可无头单测）
 var _session: BattleSession = null
@@ -123,6 +124,9 @@ func _ready() -> void:
 	# 右下详情面板：纯只读，自己从 GameState.selected_units() 取选中
 	if _selection_panel != null:
 		_selection_panel.bind_session(_session)
+	# 右侧通讯播报列：接 unit_died，画头像 + 打字机气泡
+	if _comms != null:
+		_comms.bind_session(_session)
 	# 弹道表现层：每帧从 ProjectileManager 读弹体位置重建 MultiMesh（只读）
 	if _projectiles_fx != null:
 		_projectiles_fx.bind_session(_session)
