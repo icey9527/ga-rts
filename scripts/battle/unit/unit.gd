@@ -25,6 +25,27 @@ extends RefCounted
 ## 取 2 m 而不是 0：飞机不可能精确压在一点上，5 m 误差以内都算到站（验收用例 1 的上限）。
 const ARRIVAL_RADIUS := 2.0
 
+## 到站半径上限（米）。母舰半径 561 m → 0.5×半径 = 281 m 已接近这个上限。
+const MAX_ARRIVAL_RADIUS := 300.0
+
+## 放宽到站容许的「停留帧数」：在 relaxed 容忍内连续呆满这么多 tick 才算到位。
+## 120 tick = 2 s（模拟固定 60 Hz）。
+## 为什么要“停留够久”而不是“一进圈就到站”：
+##   直接放宽到站半径会让大型舰还没飞到就提前 85 m 宣告抵达（实测踩过），
+##   而“精确到站优先 + 停留兼底”既保住了小型机的精度，又终结了绕圈。
+const ARRIVAL_DWELL_TICKS := 120
+
+## “停留判定”的半径下限（米）。
+##
+## 为什么要比 arrival_radius() 大：小型机（ou05 半径 32 → 放宽容差仅 16 m）
+## 绕航点的圈半径可能略大于 16 m，于是“呆够久”永远触发不了，仍会无限绕。
+##
+## 为什么放大到 60 m 也不会误伤正常到达（实测验证）：
+##   停留判定要求**连续 2 秒**都呆在这个半径内。一艘 320 m/s 的船
+##   穿过 60 m 只需 0.19 秒，进出太快，计数永远到不了 120 —— 它照旧精确到站。
+##   只有真正“绕圈不走”的船才会呆满，这正是我们要终结的情况。
+const LINGER_RADIUS := 60.0
+
 ## 俯仰限幅（度）。越过 90° 机头与世界 up 共线，yaw 无定义且画面会翻跟头。
 ## ADR-0003 的分层高度不需要更大的俯仰角，60° 足够爬完层间距 400 m。
 const MAX_PITCH_DEG := 60.0
@@ -118,6 +139,9 @@ var route := PackedVector3Array()
 var route_index := 0
 ## 是否已经走完航线（走完后 route 不清空：最后一个点是"驻留点"，刹车曲线要它）
 var _route_finished := false
+## 在“放宽容差”内连续停留的帧数（见 advance_route）。换航线时必须清零，
+## 否则上一段航线的停留计数会跟着带进新航线，让新终点一进去就判到站。
+var _arrival_dwell := 0
 
 # ---------------------------------------------------------------- 生命周期
 
@@ -194,6 +218,7 @@ func set_route(points: PackedVector3Array) -> void:
 	route = points
 	route_index = 0
 	_route_finished = false
+	_arrival_dwell = 0
 	reset_accumulators()
 
 
@@ -202,6 +227,7 @@ func clear_route() -> void:
 	route = PackedVector3Array()
 	route_index = 0
 	_route_finished = false
+	_arrival_dwell = 0
 
 
 ## 期望朝向：指向当前路径点。没有航线 / 已经在站内时返回当前机头（不抖动）。
@@ -234,22 +260,43 @@ func expected_position() -> Vector3:
 	return position + accum_position
 
 
-## 到达判定：距路径点 ≤ ARRIVAL_RADIUS 就前进到下一个。返回 true 表示有前进。
+## 到达判定：距路径点 ≤ 本单位的到站半径就前进到下一个。返回 true 表示有前进。
 ## 最后一个点也到站时置 finished 并调 on_route_finished()（只调一次）。
 func advance_route() -> bool:
 	if route.is_empty():
 		return false
 	var advanced := false
 	var here := expected_position()
+	var relaxed := maxf(arrival_radius(), LINGER_RADIUS)
 	while route_index < route.size():
-		if here.distance_to(route[route_index]) > ARRIVAL_RADIUS:
-			break
+		var gap := here.distance_to(route[route_index])
+		if gap > ARRIVAL_RADIUS:
+			# 精确到站够不着（大型舰的转弯半径可能远大于 2 m）→ 看能不能“呆够久”。
+			if gap > relaxed:
+				_arrival_dwell = 0
+				break
+			_arrival_dwell += 1
+			if _arrival_dwell < ARRIVAL_DWELL_TICKS:
+				break
+		_arrival_dwell = 0
 		route_index += 1
 		advanced = true
 	if route_index >= route.size() and not _route_finished:
 		_route_finished = true
 		on_route_finished()
 	return advanced
+
+
+## 本单位的到站半径（米）。
+##
+## **不能一律用 ARRIVAL_RADIUS = 2 m**：飞机式积分下转弯半径 R = v/ω 远大于 2 m，
+## 一艘 350 m 长的重巡在围着一个 2 m 的点画圈时，永远到不了站，于是永远在飞圈。
+## （实测残局：失效后幸存舰无处可去，却因为到不了航点而无限自转。）
+##
+## 按体量给容差是物理上诚实的做法：船的一半身位内就算到位，
+## 大型舰停得远、小型机停得近，与玩家直觉一致。
+func arrival_radius() -> float:
+	return clampf(radius * 0.5, ARRIVAL_RADIUS, MAX_ARRIVAL_RADIUS)
 
 
 ## 走完航线。本卡只记录 + 打点；后续卡在这里切状态机（巡逻 / 待机 / 归队）。

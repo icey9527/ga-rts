@@ -27,6 +27,18 @@ extends RefCounted
 ## 否则速度归零 → 无位移 → 永远转不回来（死锁）。
 const MIN_ALIGNMENT_FACTOR := 0.25
 
+## 近距离转向半径（米）：剩余距离小于它时，对齐因子的下限线性衰减到 0。
+##
+## **为什么必须有这层衰减**（实测挖出的死循环）：
+##   MIN_ALIGNMENT_FACTOR 的本意是防死锁，但它会让船在**最终航点**附近永远保持
+##   25% 推力。转弯半径 R = v/ω 解出的平衡点：
+##       v = 0.25·√(2·decel·R)，绕圈要求 ω = v/R
+##   ou05（decel 200、turn 30°/s）解出 **R ≈ 91 m**，而到站半径只有 2 m ——
+##   于是船绕着航点无限飞圈（实测残局：ou05 累计 4.89 圈、ou134 1.87 圈，永不停止）。
+##
+## 近距离允许速度归零并不危险：step_forward 与速度无关，船停下也能原地掰机头。
+const PIVOT_RADIUS := 400.0
+
 ## 双步保护模式。生产路径是 ASSERT；验证场景用 CAPTURE 捕获（不炸进程、不中断后续用例）。
 ## 这不是"关掉断言"：两种模式下第二次积分都**不会**生效，只是报告方式不同。
 enum GuardMode {
@@ -114,7 +126,8 @@ static func desired_speed(unit: Unit, dist: float) -> float:
 ## 期望速度（带朝向参数版）。heading 用转完机头后的方向，物理上更贴近实际推进方向。
 ##
 ##   刹车曲线  min(max_speed, √(2·deceleration·dist))
-##   对齐因子  max(0.25, forward·desired)   —— 机头不对就减速
+##   对齐因子  max(下限, forward·desired)   —— 机头不对就减速
+##   下限      远距离 0.25；近于 PIVOT_RADIUS 时线性衰减到 0（否则绕航点飞圈）
 static func desired_speed_for(unit: Unit, dist: float, heading: Vector3) -> float:
 	if unit == null:
 		return 0.0
@@ -122,7 +135,10 @@ static func desired_speed_for(unit: Unit, dist: float, heading: Vector3) -> floa
 		unit.max_speed,
 		sqrt(2.0 * maxf(unit.deceleration, 0.0) * maxf(dist, 0.0)))
 	var alignment := clampf(heading.dot(unit.desired_forward()), -1.0, 1.0)
-	return brake * maxf(MIN_ALIGNMENT_FACTOR, alignment)
+	# 下限随剩余距离衰减：远离航点时保留防死锁的 0.25，接近航点时放开到 0，
+	# 让船能停下原地转向 —— 这是打破“绕航点飞圈”的关键。
+	var floor_factor := MIN_ALIGNMENT_FACTOR * clampf(dist / PIVOT_RADIUS, 0.0, 1.0)
+	return brake * maxf(floor_factor, alignment)
 
 
 ## 标量速度趋近：加速用 acceleration，减速用 deceleration，永不变负。
