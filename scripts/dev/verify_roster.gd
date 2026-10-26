@@ -47,6 +47,28 @@ func _ready() -> void:
 	_expect(session.unit_count() == ids.size() * 2,
 		"场上单位数 = 机型数 × 2（实际 %d）" % session.unit_count())
 
+	# 血量必须真的从 TBL 装配到 Unit 上。
+	# 事故：UnitDef.apply_to() 漏写 max_hp/hp，Unit 默认值 1.0 没人覆盖，
+	# 于是所有船都是 1 血 —— 一发弹秒杀，而 verify_registry 全绿（它只校验表，不看运行时）。
+	var bad_hp := 0
+	for unit in session.units():
+		if not is_equal_approx(unit.hp, unit.max_hp) or unit.max_hp < 100.0:
+			bad_hp += 1
+			_info("  !! %s hp=%.1f max_hp=%.1f" % [unit.def_id, unit.hp, unit.max_hp])
+	_expect(bad_hp == 0,
+		"血量已从 TBL 装配（满血，且 max_hp ≥ 100；异常 %d 个）" % bad_hp)
+
+	# 单发伤害不能秒杀：用最小的武器打最大的目标也得活下来
+	var pulse_damage := 45.0
+	var survived_one_hit := true
+	for unit in session.units():
+		if unit.max_hp <= pulse_damage * 2.0:
+			survived_one_hit = false
+			_info("  !! %s max_hp=%.0f 接不住一发 %.0f 伤害" % [
+				unit.def_id, unit.max_hp, pulse_damage])
+	_expect(survived_one_hit,
+		"所有机型都能接住一发 %.0f 伤害而不死" % pulse_damage)
+
 	# 每个机型都必须有炮塔，否则永远不会开火（_step_weapons 直接跳过）
 	var no_weapon := 0
 	for unit in session.units():

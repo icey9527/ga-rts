@@ -153,6 +153,14 @@ func apply_to(unit: Unit) -> void:
 	unit.turn_rate_pitch = deg_to_rad(turn_rate_pitch)
 	unit.radius = radius
 	unit.cruise_altitude = cruise_altitude
+	# 血量：**必须写进 Unit**。
+	# Unit.hp 的默认值是 1.0（"未初始化"的意思），以前这里漏了这两行，
+	# 导致每艘船出生就是 1 血 —— 任何一发弹都秒杀。玩家看到的就是
+	# “敌人被打一下就死了”、“只收到两次受击播报”。
+	# max_hp 在 REQUIRED_STATS 里是被校验过的，校验过了却不装配，
+	# 比不校验更危险：数据看着齐全，运行时却全部是 1 血。
+	unit.max_hp = max_hp
+	unit.hp = max_hp
 
 
 ## 诊断用的一行文本
