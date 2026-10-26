@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/battle.gd" id="1_battle"]
 [ext_resource type="PackedScene" path="res://scenes/camera/rts_camera.tscn" id="2_camera"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://scripts/ui/command_menu.gd" id="7_menu"]
 [ext_resource type="Script" path="res://scripts/ui/unit_panel.gd" id="8_panel"]
 [ext_resource type="Script" path="res://scripts/ui/targeting_overlay.gd" id="9_target"]
+[ext_resource type="Script" path="res://scripts/ui/selection_panel.gd" id="10_selpanel"]
 
 [node name="Battle" type="Node3D"]
 script = ExtResource("1_battle")
@@ -50,6 +51,18 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 script = ExtResource("9_target")
+
+[node name="SelectionPanel" type="PanelContainer" parent="HudLayer"]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -356.0
+offset_top = -186.0
+offset_right = -16.0
+offset_bottom = -36.0
+mouse_filter = 2
+script = ExtResource("10_selpanel")
 
 [node name="FxRoot" type="Node3D" parent="."]
 

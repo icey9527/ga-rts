@@ -46,6 +46,7 @@ const INFLATED_COLOR := Color(0.35, 0.75, 1.0, 0.10)
 @onready var _fx_root: Node3D = $FxRoot
 @onready var _unit_panel: UnitPanel = $HudLayer/UnitPanel
 @onready var _targeting: TargetingOverlay = $HudLayer/TargetingOverlay
+@onready var _selection_panel: SelectionPanel = $HudLayer/SelectionPanel
 
 ## 模拟中枢（RefCounted：不占节点、可无头单测）
 var _session: BattleSession = null
@@ -119,6 +120,9 @@ func _ready() -> void:
 		_targeting.bind(input_router, _session, camera_rig.view_projection())
 		if not input_router.targeting_changed.is_connected(_on_targeting_changed):
 			input_router.targeting_changed.connect(_on_targeting_changed)
+	# 右下详情面板：纯只读，自己从 GameState.selected_units() 取选中
+	if _selection_panel != null:
+		_selection_panel.bind_session(_session)
 	# 弹道表现层：每帧从 ProjectileManager 读弹体位置重建 MultiMesh（只读）
 	if _projectiles_fx != null:
 		_projectiles_fx.bind_session(_session)
