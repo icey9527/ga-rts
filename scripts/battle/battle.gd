@@ -70,6 +70,11 @@ func _ready() -> void:
 
 	# 依赖注入，不在 InputRouter 里写死节点路径
 	input_router.setup(camera_rig, camera_rig.view_projection())
+	# 右键命令菜单（旧版 show_context_menu 的等价物）。
+	# 注入后就改成“右键弹菜单、选完再下令”；不注入则保持右键直接下令。
+	var menu := get_node_or_null(^"HudLayer/CommandMenu")
+	if menu != null:
+		input_router.set_command_menu(menu)
 	# 暂停（Space，与旧版一致）：输入层只发信号，真正改 Simulation 在这里做。
 	if not input_router.pause_toggled.is_connected(_on_pause_toggled):
 		input_router.pause_toggled.connect(_on_pause_toggled)

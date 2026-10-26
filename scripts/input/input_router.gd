@@ -148,6 +148,11 @@ class Pointer:
 
 ## 相机装配器（依赖注入，不写死节点路径）
 var _rig: RtsCameraRig = null
+## 右键命令菜单（可选注入）。
+## 为空时保持“右键直接下令”的旧行为；注入了就改成旧版那样的菜单。
+## 这样做的原因：右键语义是两派用户的分歧点，而注入点在一个函数里，
+## 切回去只需不注入 —— 不要在内部写一个没人敢动的开关常量。
+var _command_menu: Node = null
 ## 双视图唯一投影（同样由外部注入）
 var _projection: ViewProjection = null
 ## 选中列表（只读约定；写入走 set_selection）
@@ -586,12 +591,71 @@ func _handle_right_click(screen_pos: Vector2) -> void:
 		# 没选中任何东西就没有命令目标。CommandBus.issue(null) 会 push_error，这里先拦住。
 		return
 	var hit: Variant = _projection.pick_point(screen_pos, _candidates)
+	if _command_menu != null and _command_menu.has_method(&"open_at"):
+		_open_command_menu(screen_pos, hit)
+		return
 	if hit != null and _is_hostile(hit):
 		var attack_options := _point_options(screen_pos)
 		attack_options["target"] = hit
 		_issue(CMD_ATTACK, attack_options)
 		return
 	_issue(CMD_MOVE, _point_options(screen_pos))
+
+
+## 弹出右键命令菜单（旧版 show_context_menu）。
+## 菜单项按上下文变化：点在敌人身上才有“攻击”。
+func _open_command_menu(screen_pos: Vector2, hit: Variant) -> void:
+	var entries: Array = []
+	# 每一项的 options 都独立构造：菜单里可能选不同项，共用一份会被后一项覆写
+	entries.append({
+		"label": "移动",
+		"kind": CMD_MOVE,
+		"options": _point_options(screen_pos),
+	})
+	if hit != null and _is_hostile(hit):
+		var attack_options := _point_options(screen_pos)
+		attack_options["target"] = hit
+		entries.append({
+			"label": "攻击",
+			"kind": CMD_ATTACK,
+			"options": attack_options,
+		})
+	entries.append({
+		"label": "攻击移动",
+		"kind": CMD_ATTACK_MOVE,
+		"options": _point_options(screen_pos),
+	})
+	entries.append({
+		"label": "停止",
+		"kind": CMD_STOP,
+		"options": {"source": COMMAND_SOURCE},
+	})
+	_command_menu.call(&"open_at", screen_pos, entries)
+	get_viewport().set_input_as_handled()
+
+
+## 注入右键命令菜单（传 null 可切回直接下令）。
+##
+## **必须先断开旧菜单**：只置空引用的话，旧菜单的 command_chosen 还挂在
+## _on_menu_command 上，换/摘菜单后它仍然能发命令（本卡的回归测试就抓到过）。
+func set_command_menu(menu: Node) -> void:
+	if _command_menu != null and _command_menu.has_signal(&"command_chosen"):
+		var old_handler := Callable(self, &"_on_menu_command")
+		if _command_menu.is_connected(&"command_chosen", old_handler):
+			_command_menu.disconnect(&"command_chosen", old_handler)
+	_command_menu = menu
+	if menu == null:
+		return
+	if menu.has_signal(&"command_chosen"):
+		var handler := Callable(self, &"_on_menu_command")
+		if not menu.is_connected(&"command_chosen", handler):
+			menu.connect(&"command_chosen", handler)
+
+
+func _on_menu_command(kind: StringName, options: Dictionary) -> void:
+	if kind == &"":
+		return
+	_issue(kind, options)
 
 
 ## 右键点了敌方单位 → 攻击（docs/controls.md 命令表）。
