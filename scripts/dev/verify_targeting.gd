@@ -70,6 +70,8 @@ func _ready() -> void:
 	router._set_command_mode(InputRouter.CommandMode.NONE)
 	_expect(not router.targeting_active(), "程序化清空也能退出指选")
 
+	await _case_draw_smoke()
+
 	if CommandBus.command_issued.is_connected(handler):
 		CommandBus.command_issued.disconnect(handler)
 
@@ -85,6 +87,53 @@ func _ready() -> void:
 
 func _on_command_issued(_target: Variant, kind: StringName, _options: Dictionary) -> void:
 	_issued.append(kind)
+
+
+func _header(text: String) -> void:
+	print("[verify_target] ---- %s" % text)
+
+
+## 绘制冒烟：显式调一次 _draw。
+##
+## 为什么必须单独测：**无头模式不渲染，引擎永远不会调 _draw**。
+## 所以 `_draw` 里的 API 误用（曾把 ViewProjection.is_visible 写成
+## is_position_behind）在整套无头回归里一次都不会执行 ——
+## 实际运行时却每帧报 Invalid call，而且 _draw 在第一艘单位处就中断，
+## 箭头与准星一帧都画不出来（玩家看到的就是“没有箭头”）。
+## 直调 _draw 能让这类错误在无头回归里就暴露（脚本错误会打到 stderr）。
+func _case_draw_smoke() -> void:
+	_header("绘制冒烟：显式调用 _draw")
+	var packed := load("res://scenes/camera/rts_camera.tscn") as PackedScene
+	if packed == null:
+		_expect(false, "加载相机场景")
+		return
+	var rig := packed.instantiate() as RtsCameraRig
+	add_child(rig)
+	await get_tree().process_frame
+	rig.force_mode(RtsCameraRig.ViewMode.VIEW_3D)
+	rig.focus_on(Vector3.ZERO, true)
+
+	var session := BattleSession.new()
+	session.setup(GameState.registry(), CommandBus)
+	var unit := session.spawn_unit("ou05", Vector3(0.0, 0.0, -500.0), 0)
+	_expect(unit != null, "生成一艘单位")
+	if unit == null:
+		session.shutdown()
+		return
+
+	var router := InputRouter.new()
+	add_child(router)
+	router.set_selection([unit])
+	router._enter_targeting(InputRouter.CMD_MOVE)
+
+	var overlay := TargetingOverlay.new()
+	add_child(overlay)
+	overlay.bind(router, session, rig.view_projection())
+	await get_tree().process_frame
+
+	overlay._draw()
+	_expect(router.targeting_active(), "_draw 跑通且没打断指选态")
+	session.shutdown()
 
 
 func _expect(cond: bool, what: String) -> void:

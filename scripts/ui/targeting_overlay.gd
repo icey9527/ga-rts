@@ -24,8 +24,8 @@ const DEFAULT_COLOR := Color(0.85, 0.9, 1.0)
 ## 箭头尖端停在准星外这么多像素，避免盖住准星
 const ARROW_TIP_GAP := 20.0
 ## 箭头三角的尺寸
-const ARROW_HEAD := 11.0
-const LINE_WIDTH := 2.0
+const ARROW_HEAD := 14.0
+const LINE_WIDTH := 2.5
 ## 准星尺寸
 const CROSS_RADIUS := 10.0
 const CROSS_TICK := 8.0
@@ -71,7 +71,10 @@ func _draw() -> void:
 
 	# 1. 每个选中单位 → 鼠标，一根箭头
 	for unit in _selected_units():
-		if _projection.is_position_behind(unit.position):
+		# ViewProjection 的接口是 is_visible()（内部用 camera.is_position_behind）。
+		# 之前这里写成了 is_position_behind()，每帧报 Invalid call，
+		# _draw 在第一个单位处就中断 → 箭头与准星一帧都没画出来。
+		if not _projection.is_visible(unit.position):
 			continue
 		var from: Vector2 = _projection.world_to_screen(unit.position)
 		_draw_arrow(from, mouse, color)
@@ -84,20 +87,20 @@ func _draw() -> void:
 	_draw_hint(kind)
 
 
-## 箭头：线 + 尖端三角。尖端停在准星外 ARROW_TIP_GAP 像素。
+## 箭头：线（箭身）+ **实心三角**（箭头）。尖端停在准星外 ARROW_TIP_GAP 像素。
+## 原来用两条线画 V 形尖头，在 2 px 线宽下几乎看不出是箭头 —— 玩家反馈“纯一条线”。
 func _draw_arrow(from: Vector2, to: Vector2, color: Color) -> void:
 	var dir := to - from
 	var length := dir.length()
-	if length <= ARROW_TIP_GAP + 1.0:
+	if length <= ARROW_TIP_GAP + ARROW_HEAD:
 		return
 	var unit_dir := dir / length
 	var tip := to - unit_dir * ARROW_TIP_GAP
-	draw_line(from, tip, color, LINE_WIDTH, true)
-	# 三角：两条边指向回箭身
 	var back := tip - unit_dir * ARROW_HEAD
-	var side := Vector2(-unit_dir.y, unit_dir.x) * (ARROW_HEAD * 0.45)
-	draw_line(tip, back + side, color, LINE_WIDTH, true)
-	draw_line(tip, back - side, color, LINE_WIDTH, true)
+	var side := Vector2(-unit_dir.y, unit_dir.x) * (ARROW_HEAD * 0.5)
+	# 箭身画到三角底部为止，避免线宽把尖端顶穿
+	draw_line(from, back, color, LINE_WIDTH, true)
+	draw_colored_polygon(PackedVector2Array([tip, back + side, back - side]), color)
 
 
 func _draw_crosshair(at: Vector2, locked: bool) -> void:
