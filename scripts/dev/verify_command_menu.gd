@@ -61,12 +61,22 @@ func _ready() -> void:
 	if not CommandBus.command_issued.is_connected(handler):
 		CommandBus.command_issued.connect(handler)
 
+	# 需要目标的命令（移动/攻击/攻击移动）→ 进入指选，**不立即下令**
 	menu.command_chosen.emit(&"cmd_move", {"point": Vector3(0.0, 0.0, -500.0)})
-	_expect(_issued.size() == 1, "菜单命令经 InputRouter 发到了 CommandBus（%d 次）" % _issued.size())
-	if _issued.size() == 1:
-		_expect(_issued[0] == &"cmd_move", "CommandBus 收到的是 cmd_move（实际 %s）" % _issued[0])
+	_expect(router.targeting_active(),
+		"需要目标的菜单命令进入指选模式（等玩家点确认）")
+	_expect(_issued.is_empty(), "指选期间还没有下令（%d 次）" % _issued.size())
+	router._set_command_mode(InputRouter.CommandMode.NONE)
 
-	# 4. 传 null 摘掉菜单 → 回到直接下令模式（不再走菜单）
+	# 无需目标的命令（停止）→ 立即经 InputRouter 走 CommandBus
+	menu.command_chosen.emit(&"cmd_stop", {"source": &"test"})
+	_expect(_issued.size() == 1,
+		"停止命令经 InputRouter 发到了 CommandBus（%d 次）" % _issued.size())
+	if _issued.size() == 1:
+		_expect(_issued[0] == &"cmd_stop",
+			"CommandBus 收到的是 cmd_stop（实际 %s）" % _issued[0])
+
+	# 4. 传 null 摘掉菜单 → 旧菜单不再能发命令
 	router.set_command_menu(null)
 	menu.command_chosen.emit(&"cmd_stop", {})
 	_expect(_issued.size() == 1, "摘掉菜单后旧信号不再触发命令（%d 次）" % _issued.size())

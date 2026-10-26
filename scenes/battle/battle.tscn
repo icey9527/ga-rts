@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/battle.gd" id="1_battle"]
 [ext_resource type="PackedScene" path="res://scenes/camera/rts_camera.tscn" id="2_camera"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/battle/fx/projectile_field.gd" id="6_projfx"]
 [ext_resource type="Script" path="res://scripts/ui/command_menu.gd" id="7_menu"]
 [ext_resource type="Script" path="res://scripts/ui/unit_panel.gd" id="8_panel"]
+[ext_resource type="Script" path="res://scripts/ui/targeting_overlay.gd" id="9_target"]
 
 [node name="Battle" type="Node3D"]
 script = ExtResource("1_battle")
@@ -42,6 +43,13 @@ offset_top = 96.0
 offset_right = 268.0
 offset_bottom = 420.0
 script = ExtResource("8_panel")
+
+[node name="TargetingOverlay" type="Control" parent="HudLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("9_target")
 
 [node name="FxRoot" type="Node3D" parent="."]
 

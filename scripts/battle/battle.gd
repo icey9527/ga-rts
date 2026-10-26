@@ -45,11 +45,15 @@ const INFLATED_COLOR := Color(0.35, 0.75, 1.0, 0.10)
 @onready var _projectiles_fx: ProjectileField = $ProjectileField
 @onready var _fx_root: Node3D = $FxRoot
 @onready var _unit_panel: UnitPanel = $HudLayer/UnitPanel
+@onready var _targeting: TargetingOverlay = $HudLayer/TargetingOverlay
 
 ## 模拟中枢（RefCounted：不占节点、可无头单测）
 var _session: BattleSession = null
 ## 最小交战 AI（S4 前的占位实现）：只驱动敌方队伍，否则主场景里两支舰队一直对望
 var _ai: SimpleAI = null
+## 进入指选前的暂停态。退出指选时恢复它 —— 不能无条件 resume，
+## 否则玩家原本按空格暂停着，点一次菜单就被强行继续了。
+var _paused_before_targeting := false
 ## AI 控制的队伍号（玩家指挥 0）
 const AI_TEAM := 1
 ## 本局地图数据（L0，来自 Registry.map(MAP_ID)；加载失败时为 null，世界为空）
@@ -110,6 +114,11 @@ func _ready() -> void:
 		_unit_panel.bind_session(_session)
 		if not input_router.unit_panel_toggled.is_connected(_on_unit_panel_toggled):
 			input_router.unit_panel_toggled.connect(_on_unit_panel_toggled)
+	# 指选箭头层：只读 router 状态 + 选中 + 投影，自己不产生命令
+	if _targeting != null:
+		_targeting.bind(input_router, _session, camera_rig.view_projection())
+		if not input_router.targeting_changed.is_connected(_on_targeting_changed):
+			input_router.targeting_changed.connect(_on_targeting_changed)
 	# 弹道表现层：每帧从 ProjectileManager 读弹体位置重建 MultiMesh（只读）
 	if _projectiles_fx != null:
 		_projectiles_fx.bind_session(_session)
@@ -332,6 +341,17 @@ func _on_pause_toggled() -> void:
 func _on_unit_panel_toggled() -> void:
 	if _unit_panel != null:
 		_unit_panel.toggle()
+
+
+## 指选期间暂停（原版 start_targeting 会 game:pause）。
+## 理由：指选是“正在下达命令”的一次交互，让世界停住玩家才能想清楚点哪里；
+## 同时避免鼠标移过去的过程中目标先被别人打死。
+func _on_targeting_changed(active: bool, _kind: StringName) -> void:
+	if active:
+		_paused_before_targeting = Simulation.paused
+		Simulation.set_paused(true)
+	else:
+		Simulation.set_paused(_paused_before_targeting)
 
 
 # ---------------------------------------------------------------- 路径线（L2，只读模拟）

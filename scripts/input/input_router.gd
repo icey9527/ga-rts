@@ -45,6 +45,9 @@ signal selection_changed(units: Array)
 signal box_select_changed(screen_rect: Rect2, active: bool)
 ## 待落点的命令模式变化（A 进入攻击移动 / Shift+A 进入改高度层）
 signal command_mode_changed(mode: int)
+## 指选模式开关（原版 start_targeting / cancel_command）。
+## active=true 时 UI 要画箭头与准星；离开时 active=false。
+signal targeting_changed(active: bool, kind: StringName)
 ## R 键（射程显示）。表现层自己去响应，本类只记住"该不该显示"
 signal range_display_changed(enabled: bool)
 ## 按住 Alt 时的高度层高亮
@@ -96,7 +99,7 @@ const COMMAND_SOURCE := &"input"
 
 ## 待落点的命令模式：先按键进入模式，下一次左键点击才真正发命令
 ## （docs/controls.md：攻击移动 = A + 左键，改高度层 = A + Shift + 左键）
-enum CommandMode { NONE, ATTACK_MOVE, CHANGE_ALTITUDE }
+enum CommandMode { NONE, ATTACK_MOVE, CHANGE_ALTITUDE, TARGETING }
 
 ## 持续型 action（按住生效）。事件维护 pressed/released，_process 按 delta 步进。
 const HELD_ACTIONS: Array[StringName] = [
@@ -163,6 +166,8 @@ var _selection: Array = []
 var _candidates: Array = []
 
 var _command_mode := CommandMode.NONE
+## 指选模式下待发的命令种类（cmd_move / cmd_attack / cmd_attack_move）
+var _targeting_kind: StringName = &""
 var _range_display := false
 var _altitude_highlight := false
 var _altitude_layer := DEFAULT_ALTITUDE_LAYER
@@ -222,6 +227,29 @@ func candidates() -> Array:
 ## 当前待落点的命令模式
 func command_mode() -> CommandMode:
 	return _command_mode
+
+
+## 是否处于指选模式（UI 据此画箭头与准星）
+func targeting_active() -> bool:
+	return _command_mode == CommandMode.TARGETING
+
+
+## 指选中待发的命令种类
+func targeting_kind() -> StringName:
+	return _targeting_kind
+
+
+## 当前鼠标位置下是否悬停在敌人身上（指选准星用它切成“已锁定”）。
+## 刻意复用与右键同一条判定（船体半径 + 敌我），
+## 否则会出现“准星说锁上了、点下去却不生效”的不一致。
+func hovering_hostile() -> bool:
+	if _projection == null or not _projection.is_ready():
+		return false
+	if not is_inside_tree():
+		return false
+	var mouse := get_viewport().get_mouse_position()
+	var picked: Variant = _projection.pick_point(mouse, _candidates)
+	return picked != null and _is_hostile(picked)
 
 
 ## 当前焦点高度层索引（0 = L0 -400 m，1 = L1 0 m，2 = L2 +400 m）
@@ -394,8 +422,21 @@ func _arm_attack_move() -> void:
 func _set_command_mode(mode: CommandMode) -> void:
 	if _command_mode == mode:
 		return
+	var was_targeting := _command_mode == CommandMode.TARGETING
 	_command_mode = mode
 	command_mode_changed.emit(_command_mode)
+	if mode == CommandMode.TARGETING:
+		targeting_changed.emit(true, _targeting_kind)
+	elif was_targeting:
+		# 离开指选：先发信号再清 kind，UI 还能知道取消的是哪条命令
+		targeting_changed.emit(false, _targeting_kind)
+		_targeting_kind = &""
+
+
+## 进入指选模式（菜单选定“移动/攻击/攻击移动”后调用）
+func _enter_targeting(kind: StringName) -> void:
+	_targeting_kind = kind
+	_set_command_mode(CommandMode.TARGETING)
 
 
 func _set_range_display(enabled: bool) -> void:
@@ -508,12 +549,22 @@ func _handle_mouse_motion(motion: InputEventMouseMotion) -> void:
 # ---------------------------------------------------------------- 左键：选择 / 待落点命令
 
 func _handle_left_click(screen_pos: Vector2, additive: bool, same_type: bool) -> void:
-	# 先看待落点的命令模式：A / Shift+A 按下之后的那一下左键是命令，不是选择
+	# 先看待落点的命令模式：A / Shift+A 按下之后、或菜单选了命令之后，
+	# 那一下左键是“确认命令”，不是选择。
 	if _command_mode != CommandMode.NONE:
 		var kind := CMD_ATTACK_MOVE
-		if _command_mode == CommandMode.CHANGE_ALTITUDE:
-			kind = CMD_CHANGE_ALTITUDE
-		_issue(kind, _point_options(screen_pos))
+		match _command_mode:
+			CommandMode.CHANGE_ALTITUDE:
+				kind = CMD_CHANGE_ALTITUDE
+			CommandMode.TARGETING:
+				kind = _targeting_kind
+		var options := _point_options(screen_pos)
+		# 指选“攻击”：点在敌人身上就把那个单位锤定为目标，否则退回落点攻击
+		if kind == CMD_ATTACK:
+			var picked: Variant = _projection.pick_point(screen_pos, _candidates)
+			if picked != null and _is_hostile(picked):
+				options["target"] = picked
+		_issue(kind, options)
 		_set_command_mode(CommandMode.NONE)
 		return
 
@@ -593,6 +644,11 @@ func _type_key(candidate: Variant) -> Variant:
 # ---------------------------------------------------------------- 右键：命令
 
 func _handle_right_click(screen_pos: Vector2) -> void:
+	# 指选中右键 = 取消（原版 cancel_command），不弹菜单也不下令
+	if _command_mode == CommandMode.TARGETING:
+		_set_command_mode(CommandMode.NONE)
+		get_viewport().set_input_as_handled()
+		return
 	if _selection.is_empty():
 		# 没选中任何东西就没有命令目标。CommandBus.issue(null) 会 push_error，这里先拦住。
 		return
@@ -661,7 +717,15 @@ func set_command_menu(menu: Node) -> void:
 func _on_menu_command(kind: StringName, options: Dictionary) -> void:
 	if kind == &"":
 		return
-	_issue(kind, options)
+	match kind:
+		CMD_MOVE, CMD_ATTACK, CMD_ATTACK_MOVE:
+			# 需要落点 / 目标 → **先不执行**，进入指选等玩家在战场上点确认。
+			# 菜单里预先把 options.point 算好了也不要 —— 那是“右键位置”，
+			# 不是玩家接下来要指定的目标位置。
+			_enter_targeting(kind)
+		_:
+			# 停止等无需目标的命令：立即执行
+			_issue(kind, options)
 
 
 ## 右键点了敌方单位 → 攻击（docs/controls.md 命令表）。
