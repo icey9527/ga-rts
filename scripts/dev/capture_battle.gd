@@ -7,8 +7,8 @@ extends Node3D
 
 const BATTLE := "res://scenes/battle/battle.tscn"
 const LOG_EVERY := 10          ## 每 10 帧记一行（约 0.17 秒）
-const CAPTURE_EVERY := 120     ## 每 120 帧存一张图
-const TOTAL_FRAMES := 600
+const CAPTURE_EVERY := 150     ## 每 120 帧存一张图
+const TOTAL_FRAMES := 1500
 
 var _battle: Node = null
 var _frame := 0

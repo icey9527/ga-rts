@@ -42,6 +42,8 @@ const INFLATED_COLOR := Color(0.35, 0.75, 1.0, 0.10)
 @onready var camera_rig: RtsCameraRig = $Camera
 @onready var input_router: InputRouter = $InputRouter
 @onready var _hud: MinimalHUD = $HudLayer/MinimalHUD
+@onready var _projectiles_fx: ProjectileField = $ProjectileField
+@onready var _fx_root: Node3D = $FxRoot
 
 ## 模拟中枢（RefCounted：不占节点、可无头单测）
 var _session: BattleSession = null
@@ -95,6 +97,9 @@ func _ready() -> void:
 	# 不反向写任何模拟字段（硬规则 4）。
 	if _hud != null:
 		_hud.bind_session(_session)
+	# 弹道表现层：每帧从 ProjectileManager 读弹体位置重建 MultiMesh（只读）
+	if _projectiles_fx != null:
+		_projectiles_fx.bind_session(_session)
 
 	# 最小交战 AI：只控敌方（team 1）。玩家指挥 team 0。
 	# 没有它的话，不给命令就永远不会打起来 —— S3 结束时的真实状态。
@@ -266,6 +271,13 @@ func unit_view(unit_id: int) -> UnitView:
 func _on_unit_died(unit: Unit, _killer_id: int) -> void:
 	if unit == null:
 		return
+	# 退场爆炸：在单位**最后的位置**炸一团（尺寸随舰体缩放）
+	if _fx_root != null and unit.position.is_finite():
+		var burst := DeathBurst.new()
+		_fx_root.add_child(burst)
+		var tint := Color(1.0, 0.55, 0.35) if unit.team == 1 else Color(0.35, 0.95, 1.0)
+		burst.setup(unit.position, unit.radius, tint)
+
 	var view: UnitView = _views.get(unit.id, null) as UnitView
 	_views.erase(unit.id)
 	if view != null:
