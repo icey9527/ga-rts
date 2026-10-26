@@ -79,6 +79,7 @@ func _ready() -> void:
 	_session = BattleSession.new()
 	_session.setup(GameState.registry(), CommandBus)
 	_session.unit_spawned.connect(_on_unit_spawned)
+	_session.unit_died.connect(_on_unit_died)
 	_session.route_assigned.connect(_on_route_assigned)
 	_session.command_applied.connect(_on_command_applied)
 
@@ -254,6 +255,26 @@ func _on_unit_spawned(unit: Unit) -> void:
 ## 某单位的表现节点（验证场景 / 调试可视化用；没有则 null）
 func unit_view(unit_id: int) -> UnitView:
 	return _views.get(unit_id, null) as UnitView
+
+
+## 单位阵亡 → **释掉表现节点**。
+##
+## 之前漏了这条接线：模拟层已经正常销毁了单位（_units 里没了、统计也对），
+## 但 UnitView 没人释放，于是被打死的敌**模型还留在场上**——玩家看到的就是
+## “敌人已经爆了，但模型仍在飞”甚至参与后续观感。
+## 这是漏接线，不是“没做到”：_settle_kills 早就发了 unit_died，只是没人听。
+func _on_unit_died(unit: Unit, _killer_id: int) -> void:
+	if unit == null:
+		return
+	var view: UnitView = _views.get(unit.id, null) as UnitView
+	_views.erase(unit.id)
+	if view != null:
+		# 立刻从树上摘掉：queue_free 要到帧末才生效，同一帧里还可能被框选/渲染到
+		if view.get_parent() != null:
+			view.get_parent().remove_child(view)
+		view.queue_free()
+	# 死人的航线不该还画在场上
+	_rebuild_route_mesh()
 
 
 # ---------------------------------------------------------------- 每 tick 接线
