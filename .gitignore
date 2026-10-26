@@ -48,3 +48,7 @@ desktop.ini
 # Godot 导入 glb 时从内嵌贴图解出的同目录 png（可从 glb 再生，不入库）
 /assets/models/**/*.png
 /assets/models/**/*.png.import
+
+# Python 字节码缓存（迁移脚本跑过就会生成）
+__pycache__/
+*.pyc
