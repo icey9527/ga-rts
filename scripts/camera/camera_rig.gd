@@ -89,6 +89,62 @@ func focus_position() -> Vector3:
 
 
 ## 平滑聚焦（空格聚焦所选 / 双击单位 / 剧情运镜）
+## 锁定跟随目标（任何带 `position` 属性的对象，通常是 Unit；null = 不跟随）。
+## 为什么这个能力在 rig，而不是在 InputRouter：
+##   跟随是“相机每帧追一个移动对象”，属于相机自身的时间行为；
+##   输入层只负责决定“跟谁 / 不跟”，不该每帧算出新焦点。
+var _follow_target: Variant = null
+## 跟随平滑系数（1/s）。太小会拖尾，太大会和单位一起抖；
+## 指数插值天然帧率无关。
+const FOLLOW_SHARPNESS := 6.0
+
+
+## 让相机锁住一个目标。传 null 等同于 clear_follow_target()。
+func set_follow_target(target: Variant) -> void:
+	_follow_target = target
+
+
+func clear_follow_target() -> void:
+	_follow_target = null
+
+
+func follow_target() -> Variant:
+	return _follow_target
+
+
+## 每帧把焦点指数推向跟随目标。
+## 目标阵亡（alive=false）或丢失 position 时**自动解除跟随** ——
+## 否则死掉的船会让相机赖在厂体上不走。
+func _process(delta: float) -> void:
+	if _follow_target == null or delta <= 0.0:
+		return
+	var pos: Variant = _follow_position()
+	if pos == null:
+		_follow_target = null
+		return
+	var target: Vector3 = pos
+	var current := focus_position()
+	var t := 1.0 - exp(-FOLLOW_SHARPNESS * delta)
+	# instant=true：平滑由本函数自己做，不能让相机再插值一次（会双滞）
+	focus_on(current.lerp(target, t), true)
+
+
+## 读跟随目标的世界坐标。不是带 position 的对象就返 null（解除跟随）。
+func _follow_position() -> Variant:
+	if _follow_target is Vector3:
+		return _follow_target
+	if not (_follow_target is Object):
+		return null
+	var obj := _follow_target as Object
+	var alive: Variant = obj.get(&"alive")
+	if alive != null and typeof(alive) == TYPE_BOOL and not bool(alive):
+		return null
+	var pos: Variant = obj.get(&"position")
+	if pos == null or typeof(pos) != TYPE_VECTOR3:
+		return null
+	return pos
+
+
 func focus_on(world_pos: Vector3, instant := false) -> void:
 	if _mode == ViewMode.VIEW_2D:
 		camera_2d.focus_on(world_pos, instant)

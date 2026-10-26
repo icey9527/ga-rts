@@ -192,6 +192,9 @@ func is_ready() -> bool:
 func set_selection(units: Array) -> void:
 	_selection = units.duplicate()
 	GameState.set_selected_units(_selection)
+	# 选择清空 → 没有可跟的东西，立即解除锁定（旧版点空地也会 stop_follow）
+	if _selection.is_empty() and _rig != null:
+		_rig.clear_follow_target()
 	selection_changed.emit(_selection)
 
 
@@ -664,6 +667,9 @@ func _active_camera() -> Node3D:
 func _move_focus(world_delta: Vector3) -> void:
 	if _rig == null or world_delta == Vector3.ZERO:
 		return
+	# 手动平移 = 玩家接管镜头，解除跟随
+	# （旧版：右键按下 / 拖拽时 camera:stop_follow()，否则镜头会被船掳回去）
+	_rig.clear_follow_target()
 	# instant=true：拖拽 / 按键平移必须跟手，不能走聚焦那条平滑插值
 	_rig.focus_on(_rig.focus_position() + world_delta, true)
 	_sync_reference_height()
@@ -690,6 +696,8 @@ func _zoom(steps: float) -> void:
 ## 水平绕行。2D 相机没有这个能力（ADR-0002：2D 无旋转），has_method 直接跳过 ——
 ## 于是这里也不需要 if is_2d。
 func _orbit(degrees: float) -> void:
+	if _rig != null:
+		_rig.clear_follow_target()
 	var camera := _active_camera()
 	if camera != null and camera.has_method(&"orbit"):
 		camera.call(&"orbit", degrees)
@@ -720,6 +728,12 @@ func _focus_selection() -> void:
 	# 参考平面先跟着目标高度走，否则飞行过程中点选还落在旧高度层
 	_projection.set_reference_height(target.y)
 	_rig.focus_on(target, false)
+	# 只选中**一艘**时锁定跟随（旧版 camera:set_follow 的等价能力）。
+	# 多选不跟：编队中心在地面上移动时镜头会一直飘，反而难受。
+	if _selection.size() == 1:
+		_rig.set_follow_target(_selection[0])
+	else:
+		_rig.clear_follow_target()
 
 
 ## 选中单位的世界坐标中心。候选是裸 Vector3 或带 position 的对象 / 字典，一律吃。
