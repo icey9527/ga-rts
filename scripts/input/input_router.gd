@@ -25,7 +25,17 @@ extends Node
 ##     位移 ≤ 4 px    → 当作点击，screen_to_world 拾取目标点，发 cmd_move
 ##   左键走同一套状态机：拖拽 → pick_rect 框选；点击 → pick_point 点选。
 ##
-## A / S 的双重身份：project.godot 里它们既是 camera_pan_left / camera_pan_down，
+## 左键点选后是否自动把镜头飞到选中单位。**默认关闭**。
+##
+## 旧版是相机**持续跟随**（`camera:set_follow`），而不是点一下跳一下。
+## 我们目前只能做“一次性聚焦”（`_rig.focus_on`），实测有两个问题：
+##   1. 每点一艘船视角就跳一次，比不跟随更晕
+##   2. 会改变屏幕坐标 → 世界坐标的映射，把即将到来的点击位置弄偏
+##      （verify_slice 因此出现 890 m 落点误差）
+## 真正的做法是给相机 rig 加“锁定跟随目标”，属于相机卡的范围；在那之前先关着。
+const AUTO_FOCUS_ON_SELECT := false
+
+
 ## 又是 cmd_attack_move / cmd_stop（docs/controls.md 两张表各自都成立，Godot 的
 ## InputMap 不做互斥）。本类的裁决见 AMBIGUOUS_HOLD_MS 注释。
 
@@ -515,7 +525,20 @@ func _handle_left_click(screen_pos: Vector2, additive: bool, same_type: bool) ->
 		set_selection(merged)
 		return
 
+	if _is_hostile(hit) and not _selection.is_empty():
+		# 旧版行为：已有选中时，左键点敌人 = 直接攻击（与右键并存）。
+		# 旧版 playing.lua 的 elseif 分支就是这么写的：
+		#   clicked.team ~= player_team and #game.selected_units > 0 → sess:direct_attack(clicked)
+		var attack_options := _point_options(screen_pos)
+		attack_options["target"] = hit
+		_issue(CMD_ATTACK, attack_options)
+		get_viewport().set_input_as_handled()
+		return
+
 	set_selection([hit])
+	# 点选己方单位后自动聚焦（旧版的 set_follow）。点敌人不聚焦 —— 那一下是攻击不是查看。
+	if AUTO_FOCUS_ON_SELECT and not _is_hostile(hit):
+		_focus_selection()
 
 
 func _apply_box_selection(screen_rect: Rect2, additive: bool) -> void:
