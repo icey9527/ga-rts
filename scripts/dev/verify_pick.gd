@@ -77,6 +77,18 @@ func _ready() -> void:
 	var hit_plain: Variant = proj.pick_point(plain_screen + Vector2(6.0, 0.0), [plain])
 	_expect(hit_plain == plain, "无 radius 的候选仍按固定半径命中")
 
+	# 6. **点头顶徽章优先**（原版 Markers.pick 的等价物）：
+	# 小飞机机体可点半径只有 8 px，但头顶徽章是恒定的 18 px 圆 —— 靠它才点得到
+	var small_badge := small_screen - Vector2(0.0, ViewProjection.MARKER_OFFSET_PX)
+	var hit_badge: Variant = proj.pick_point(small_badge, [big, small])
+	_expect(hit_badge == small, "点小船头顶徽章能选中它（机体本身只有 8 px）")
+
+	# 7. 徽章优先于船体：大船的船体范围很大，但点在**小船徽章**上仍应选中小船
+	#    （否则大船会把旁边小飞机的头标“遮”掉）
+	var big_badge := big_screen - Vector2(0.0, ViewProjection.MARKER_OFFSET_PX)
+	var hit_big_badge: Variant = proj.pick_point(big_badge, [big, small])
+	_expect(hit_big_badge == big, "点大船头顶徽章选中的是大船")
+
 	_report()
 
 

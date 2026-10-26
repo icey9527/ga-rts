@@ -24,6 +24,16 @@ extends Control
 
 ## 单位标记半径（像素）。太小点不住，太大会糊住下面真实模型
 const MARKER_RADIUS := 5.0
+
+## 头顶徽章（原版 tactical_markers 的等价物）。
+## 原版画的是 32 px 圆形**角色立绘**；那批立绘资源（content/teams/*/chara/*/face/）
+## 在 S0.5 根本没迁，所以这里用“队色圆底 + 机型缩写”当占位 ——
+## 目的不是好看，而是让玩家在混战里能一眼分清“这条是谁”。
+const BADGE_RADIUS := 11.0
+const BADGE_FONT_SIZE := 9
+## 徽章中心高于机体屏幕位置多少像素。与点选共用同一个常量（单一口径）
+## —— 两边各写一个数就会出现“看得到徽章但点不中”的偏差。
+const BADGE_OFFSET := ViewProjection.MARKER_OFFSET_PX
 ## 选中圆环半径（像素）。必须明显大于标记半径，否则两个圆重叠成一块
 const SELECT_RING_RADIUS := 9.0
 const SELECT_RING_POINTS := 24
@@ -169,12 +179,15 @@ func _draw() -> void:
 		team_counts[unit.team] = int(team_counts.get(unit.team, 0)) + 1
 		drawn += 1
 
-		# 画序：圆环 → 血条 → 圆点。圆点最后画，保证它永远是队色的视觉锚点
+		# 画序：选中光环 → 倒三角 → 血条 → 徽章。
+		# 徽章最后画，保证它是队色与机型缩写的视觉锚点，不会被血条或三角盖住。
 		if selected.has(unit.id):
 			draw_arc(screen, SELECT_RING_RADIUS, 0.0, TAU,
 				SELECT_RING_POINTS, SELECT_COLOR, SELECT_RING_WIDTH, true)
-		_draw_health_bar(screen, unit, font)
-		draw_circle(screen, MARKER_RADIUS, _team_color(unit.team))
+		var badge_at := screen - Vector2(0.0, BADGE_OFFSET)
+		_draw_marker_triangle(badge_at, screen, unit)
+		_draw_health_bar(badge_at, unit, font)
+		_draw_marker_badge(badge_at, unit, font, selected.has(unit.id))
 
 	_draw_summary(units.size(), drawn, team_counts, selected.size(), font)
 
@@ -183,11 +196,12 @@ func _draw() -> void:
 
 
 ## 血条：背景恒画（给出"这里有多长"的基准），前景按血量比例裁宽。
-## 不画满就补一条底色，否则低血量时玩家分不清"血条短"和"没有血条"。
+## 不画满就补一条底色，否则低血量时分不清"血条短"和"没有血条"。
+## at 是**徽章中心**：血条画在徽章上方，不挡机型缩写。
 func _draw_health_bar(at: Vector2, unit: Unit, font: Font) -> void:
 	var ratio := clampf(unit.hp_ratio(), 0.0, 1.0)
 	var bar_rect := Rect2(
-		Vector2(at.x - HP_BAR_WIDTH * 0.5, at.y - MARKER_RADIUS - HP_BAR_GAP),
+		Vector2(at.x - HP_BAR_WIDTH * 0.5, at.y - BADGE_RADIUS - HP_BAR_GAP),
 		Vector2(HP_BAR_WIDTH, HP_BAR_HEIGHT))
 	draw_rect(bar_rect, HP_BAR_BACKGROUND)
 	if ratio > 0.0:
@@ -202,6 +216,47 @@ func _draw_health_bar(at: Vector2, unit: Unit, font: Font) -> void:
 			"%d%%" % roundi(ratio * 100.0),
 			HORIZONTAL_ALIGNMENT_LEFT, HP_BAR_WIDTH, LABEL_FONT_SIZE,
 			_hp_color(ratio))
+
+
+## 头顶徽章：深色外圈 + 队色内圆 + 机型缩写。
+## 选中时描边变白，与脚下的选中光环双重确认（远处光环可能被船体挡住）。
+func _draw_marker_badge(at: Vector2, unit: Unit, font: Font, is_selected: bool) -> void:
+	draw_circle(at, BADGE_RADIUS + 2.0, Color(0.04, 0.05, 0.07, 0.9))
+	draw_circle(at, BADGE_RADIUS, _team_color(unit.team).darkened(0.45))
+	var ring := SELECT_COLOR if is_selected else _team_color(unit.team)
+	draw_arc(at, BADGE_RADIUS, 0.0, TAU, 24, ring, 2.0, true)
+	var label := _marker_label(unit)
+	if label.is_empty() or font == null:
+		return
+	var label_size := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1.0, BADGE_FONT_SIZE)
+	draw_string(font,
+		at + Vector2(-label_size.x * 0.5, label_size.y * 0.34),
+		label, HORIZONTAL_ALIGNMENT_LEFT, -1.0, BADGE_FONT_SIZE,
+		Color(1.0, 1.0, 1.0, 0.92))
+
+
+## 倒三角：从徽章底部指向机体，坐实“这个头标属于下面那艘船”。
+## 徽章与机体距离不够时（船很大/缩得很近）就不画，避免三角被压成一个点、反而脏。
+func _draw_marker_triangle(at: Vector2, body_screen: Vector2, unit: Unit) -> void:
+	var top := at.y + BADGE_RADIUS + 1.0
+	var bottom := body_screen.y - MARKER_RADIUS - 2.0
+	if bottom - top < 6.0:
+		return
+	var mid := top + (bottom - top) * 0.55
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(at.x, bottom),
+		Vector2(at.x - 4.0, mid),
+		Vector2(at.x + 4.0, mid),
+	]), _team_color(unit.team))
+
+
+## 徽章里的机型缩写。取 def_id 前 3 位大写（ou05 → OU0、fighter → FIG）。
+## 不做完整 ID：徽章只有 22 px 宽，写全就成噪点了。
+func _marker_label(unit: Unit) -> String:
+	var id := unit.def_id
+	if id.is_empty():
+		return ""
+	return id.substr(0, 3).to_upper()
 
 
 ## 左上角汇总 + 战损播报。

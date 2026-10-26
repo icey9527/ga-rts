@@ -36,6 +36,13 @@ const PICK_RADIUS_SCALE := 1.4
 ## 屏幕最小命中半径（像素）。
 ## 缩得很远时大船的投影比一个像素还小，必须有个地板值，否则根本点不中。
 const MIN_PICK_RADIUS_PX := 8.0
+
+## 头顶徽章高于机体屏幕位置多少像素（HUD 与点选共用，避免两边各写一个数）。
+const MARKER_OFFSET_PX := 34.0
+## 头顶徽章的可点半径（像素）。
+## 原版 tactical_markers 就是这套：先试“点头标”（18px 圆内），
+## 命中就直接返回，优先级高于点机体 —— 小飞机缩得很小时全靠这个才点得到。
+const MARKER_PICK_RADIUS_PX := 18.0
 ## 射线与参考平面近乎平行时的判据（|dir.y| 小于它就不做除法）
 const RAY_PARALLEL_EPSILON := 1.0e-5
 ## screen_to_world 的 fallback_depth 不能是 0 或负数，否则点会落在相机背后
@@ -159,6 +166,25 @@ func world_units_per_pixel() -> float:
 func pick_point(screen: Vector2, candidates: Array) -> Variant:
 	if not is_ready():
 		return null
+
+	# 第一轮：**点头顶徽章优先**（原版 Markers.pick 的等价物）。
+	# 徽章是恒定的 18 px 圆，与船大小无关 —— 远处的小飞机靠它才点得到，
+	# 而大船的徽章也不会抢掉旁边小船的点击（徽章之间不重叠）。
+	var badge_best: Variant = null
+	var badge_distance := INF
+	for candidate in candidates:
+		var world: Variant = _candidate_position(candidate)
+		if world == null or not is_visible(world):
+			continue
+		var badge_at := world_to_screen(world) - Vector2(0.0, MARKER_OFFSET_PX)
+		var db := badge_at.distance_to(screen)
+		if db <= MARKER_PICK_RADIUS_PX and db < badge_distance:
+			badge_distance = db
+			badge_best = candidate
+	if badge_best != null:
+		return badge_best
+
+	# 第二轮：按船体范围判定
 	var best: Variant = null
 	var best_distance := INF
 	for candidate in candidates:
