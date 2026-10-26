@@ -9,6 +9,8 @@ extends Control
 ##   2. 血条 —— 回答"谁快没了"
 ##   3. 选中圆环 —— 回答"我刚才框到了谁"
 ## 外加一行汇总与战损播报（unit_died 的唯一用途）。
+## L4 补充：顶部状态条（关卡/时间/双方存活/分数）与底部操作提示 ——
+## 这两块不读模拟真值以外的东西，也不参与任何交互，纯"让玩家知道现在几点了、还剩谁"。
 ##
 ## 硬规则 4（表现层只读）：本文件里对 Unit 的访问只有 `position` / `team` /
 ## `id` / `def_id` / `hp_ratio()`，没有任何一处赋值。想"看起来改一下"的东西一律不在这里做。
@@ -45,6 +47,36 @@ const MAX_NOTICES := 6
 ## 屏幕外这个像素范围内仍然照画（只是省掉完全不可能看到的点）
 const CULL_MARGIN := 64.0
 
+## 顶部状态条高度（像素）：13 号字 + 上下留白，一行信息不挤。
+#  用半透明而不是实心黑：全黑条会把战场上缘遮死，玩家看不到从上方压过来的敌人
+const TOP_BAR_HEIGHT := 32.0
+const TOP_BAR_COLOR := Color(0, 0, 0, 0.55)
+const TOP_BAR_FONT_SIZE := 13
+## 文字基线。不用垂直居中 API：draw_string 的基线语义最稳，写死一个数与 32px 高对齐
+const TOP_BAR_TEXT_Y := 21.0
+const TOP_BAR_TEXT_COLOR := Color(0.85, 0.9, 1.0, 0.95)
+## 各列固定 x 偏移。故意做成定宽列：时间/人数每帧都在变，
+## 改成按字宽动态排版会让整行来回抖动，读数反而更难盯
+const TOP_BAR_COLUMNS: Array[float] = [12.0, 140.0, 268.0, 368.0, 468.0]
+## 击毁一单位记多少分。纯表现计分口径（不是模拟真值），将来要改经济系统也不必动这里
+const SCORE_PER_KILL := 100
+## 底部操作提示
+const HINT_TEXT := "左键: 选择 / 框选 | 右键: 命令菜单 | U: 单位面板 | 空格: 暂停 | F: 跟随 | Tab: 2D/3D"
+const HINT_FONT_SIZE := 12
+const HINT_COLOR := Color(0.7, 0.75, 0.8, 0.85)
+const HINT_LEFT_MARGIN := 12.0
+const HINT_BOTTOM_MARGIN := 8.0
+## 暂停提示：字号更大、金色，压在提示行上方且居中 —— 暂停时玩家最该知道的就是这件事
+const PAUSE_TEXT := "游戏已暂停（空格继续）"
+const PAUSE_FONT_SIZE := 16
+const PAUSE_COLOR := Color(1, 0.85, 0.3, 1)
+## 暂停行基线距提示行基线的距离（像素）
+const PAUSE_LINE_GAP := 22.0
+## 左上角汇总 / 播报的起画 y。必须让到状态条下方：
+## 两者都贴左上角，不让就会让"关卡/时间"和"单位 N"叠成一行看不清的乱码。
+## 改的是偏移量而不是汇总内容 —— 读数口径一个字没动
+const SUMMARY_TOP := SUMMARY_MARGIN + TOP_BAR_HEIGHT
+
 ## team 0 =  PLAYER（青），team 1 = 敌方（橙红）。颜色写死在这里，
 ## 因为队伍配色属于"玩家一眼要分得清"的表现决策，不该散到数据表里
 const TEAM_COLORS: Array[Color] = [Color(0.3, 1.0, 0.8), Color(1.0, 0.45, 0.3)]
@@ -58,7 +90,8 @@ const SELECT_COLOR := Color(1.0, 1.0, 1.0, 0.9)
 const SUMMARY_COLOR := Color(0.85, 0.9, 1.0, 0.95)
 const TOAST_COLOR := Color(1.0, 0.55, 0.45, 1.0)
 
-## 要显示的战斗会话。null = 未接线，此时 _draw 直接返回（不是错误状态）
+## 要显示的战斗会话。null = 未接线（不是错误状态）：
+## 此时单位标记/血条/汇总全不画，但顶部状态条与底部提示照画
 var _session: BattleSession = null
 ## 战损播报（元素 = {"text": String, "left": float}）。纯表现数据，不进模拟层
 var _notices: Array[Dictionary] = []
@@ -96,6 +129,13 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	# 顶部状态条 / 底部提示最先画：它们不依赖 session 也不依赖相机。
+	# 放最前面的唯一理由就是下面那几个 return —— 没接线 / 相机未装配 / 场上没人时
+	# 后面会提前退出，而这两块不能跟着消失（显示"友军: -"总比整块 HUD 变空白好排查）。
+	# 代价是单位标记会盖在状态条上方一点点，那点重叠比"HUD 一半不显示"划算。
+	_draw_top_status_bar()
+	_draw_bottom_hints()
+
 	var session := _session
 	if session == null:
 		return
@@ -176,12 +216,12 @@ func _draw_summary(total: int, visible: int, team_counts: Dictionary, selected: 
 	var line := "单位 %d（视野内 %d）  选中 %d" % [total, visible, selected]
 	if not parts.is_empty():
 		line += "  |  " + " / ".join(parts)
-	draw_string(font, Vector2(SUMMARY_MARGIN, SUMMARY_MARGIN + LABEL_FONT_SIZE), line,
+	draw_string(font, Vector2(SUMMARY_MARGIN, SUMMARY_TOP + LABEL_FONT_SIZE), line,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_FONT_SIZE, SUMMARY_COLOR)
 
 	# 战损播报：unit_died 是它唯一的来源。故意不做队列动画，
 	# 只让 alpha 随剩余时间淡出 —— 一眼能看出"刚没的是谁"就够了
-	var y := SUMMARY_MARGIN + LABEL_FONT_SIZE * 2.0
+	var y := SUMMARY_TOP + LABEL_FONT_SIZE * 2.0
 	for notice in _notices:
 		var alpha := clampf(float(notice.get("left", 0.0)) / TOAST_DURATION, 0.0, 1.0)
 		var color := TOAST_COLOR
@@ -189,6 +229,83 @@ func _draw_summary(total: int, visible: int, team_counts: Dictionary, selected: 
 		draw_string(font, Vector2(SUMMARY_MARGIN, y), String(notice.get("text", "")),
 			HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_FONT_SIZE, color)
 		y += LABEL_FONT_SIZE + 2.0
+
+
+# ---------------------------------------------------------------- 顶部状态条
+
+
+## 顶部状态条：关卡 / 时间 / 双方存活数 / 分数。
+## 这几项都是"每帧看一眼就知道局势"的量，之前只在左上角汇总里有个总数，
+## 分不清哪一方快被打空 —— 旧版 Love2D 的 HUD 就是靠这条读战局的。
+func _draw_top_status_bar() -> void:
+	var font := ThemeDB.fallback_font
+	var view_width := get_viewport_rect().size.x
+	# 半透明黑条打底：文字直接压在战场上有时候完全看不清（尤其白蓝两队混战处）
+	draw_rect(Rect2(Vector2.ZERO, Vector2(view_width, TOP_BAR_HEIGHT)), TOP_BAR_COLOR)
+
+	var columns := _top_bar_texts()
+	# 列数与文案数取小：将来少写一列也不会越界读，多写也不会错位
+	for i in mini(columns.size(), TOP_BAR_COLUMNS.size()):
+		draw_string(font, Vector2(TOP_BAR_COLUMNS[i], TOP_BAR_TEXT_Y), columns[i],
+			HORIZONTAL_ALIGNMENT_LEFT, -1, TOP_BAR_FONT_SIZE, TOP_BAR_TEXT_COLOR)
+
+
+## 状态条各列文案。单独抽出来是为了让排版（_draw_top_status_bar）与取值两张皮，
+## 以后要验证"分数真的跟着击毁数涨"可以直接对这一堆字符串下断言
+func _top_bar_texts() -> PackedStringArray:
+	return PackedStringArray([
+		"关卡: 遭遇战",
+		"时间: %.1f" % _elapsed_seconds(),
+		"友军: %s" % _alive_text(0),
+		"敌军: %s" % _alive_text(1),
+		"分数: %d" % _score(),
+	])
+
+
+## 已进行的秒数。只从模拟时钟读，绝不用 delta 自己累加：
+## HUD 自己攒一份就会和暂停 / 掉帧补跑 / 回放对不上，显示的时间比战斗进程快或慢
+func _elapsed_seconds() -> float:
+	# 除 TICK_RATE 而不是写 60：频率将来改了（比如改 30Hz）这里自动跟上
+	return float(Simulation.tick_index()) / float(Simulation.TICK_RATE)
+
+
+## 某队存活数文案。session 没接线时给 "-" 而不是 0：
+## 0 会被读成"友军全军覆没"，那是个完全不同的（且吓人的）信息
+func _alive_text(team: int) -> String:
+	var session := _session
+	if session == null or not session.has_method(&"alive_count"):
+		return "-"
+	return str(session.alive_count(team))
+
+
+## 分数：累计击毁数 × 100。击毁数取会话里已结算的死亡数，
+## 不自己数 unit_died 信号 —— 信号可能因换关卡 / 重连丢失，而 session 的计数是权威值
+func _score() -> int:
+	var session := _session
+	if session == null or not session.has_method(&"stats"):
+		return 0
+	var snapshot: Dictionary = session.stats()
+	return int(snapshot.get("deaths_settled", 0)) * SCORE_PER_KILL
+
+
+# ---------------------------------------------------------------- 底部提示
+
+
+## 左下角操作提示 + （暂停时）居中的暂停横幅。
+## 这些按键在代码里都实现了，但之前没有任何地方告诉玩家 —— 不写出来等于没实现。
+func _draw_bottom_hints() -> void:
+	var font := ThemeDB.fallback_font
+	var view_size := get_viewport_rect().size
+	# 从视口高度往上量：Control 若被装进别的容器导致 size 变小，提示也不会飘到屏幕中间
+	var baseline := view_size.y - HINT_BOTTOM_MARGIN
+
+	draw_string(font, Vector2(HINT_LEFT_MARGIN, baseline), HINT_TEXT,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, HINT_FONT_SIZE, HINT_COLOR)
+
+	# 暂停提示放在提示行上方而不是盖住它：暂停时玩家往往正想读那一行按键
+	if Simulation.paused:
+		draw_string(font, Vector2(0.0, baseline - PAUSE_LINE_GAP), PAUSE_TEXT,
+			HORIZONTAL_ALIGNMENT_CENTER, view_size.x, PAUSE_FONT_SIZE, PAUSE_COLOR)
 
 
 # ---------------------------------------------------------------- 数据读取

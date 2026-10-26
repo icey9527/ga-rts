@@ -28,6 +28,14 @@ enum ProjectionMode { PERSPECTIVE, ORTHOGRAPHIC }
 
 ## 点选半径（屏幕像素）。指尖/鼠标抖一点也要能选中。
 const DEFAULT_PICK_RADIUS_PX := 18.0
+
+## 按船体半径点选时的宽度系数：判定半径 = 机体半径 × 本系数。
+## 1.4 比机体实际轮廓宽 40%，这是原版 get_unit_at 的口径 ——
+## 恰好能“点到船身”，又不会让两艘并排的船抢了对方的点击。
+const PICK_RADIUS_SCALE := 1.4
+## 屏幕最小命中半径（像素）。
+## 缩得很远时大船的投影比一个像素还小，必须有个地板值，否则根本点不中。
+const MIN_PICK_RADIUS_PX := 8.0
 ## 射线与参考平面近乎平行时的判据（|dir.y| 小于它就不做除法）
 const RAY_PARALLEL_EPSILON := 1.0e-5
 ## screen_to_world 的 fallback_depth 不能是 0 或负数，否则点会落在相机背后
@@ -140,14 +148,19 @@ func world_units_per_pixel() -> float:
 	return a.distance_to(b)
 
 
-## 点选：在屏幕空间找离 screen 最近、且在 pick_radius 内的候选。
-## candidates 的元素可以是 Vector3，也可以是带 global_position / position 的对象或字典。
+## 点选：在屏幕空间找离 screen 最近、且在**该候选自己的可点半径**内的候选。
+## candidates 的元素可以是 Vector3，也可以是带 position/radius 的对象或字典。
 ## 返回原候选本身（不是坐标），没命中返回 null。
+##
+## **为什么不能用一个固定像素半径**：固定 18 px 会把 1123 m 的母舰和
+## 8 m 的小飞机当成一样大的靶子 —— 玩家明明点在船身上却选不中，
+## 或者点空白处却选中了隔壁的船。这正是“点一个点”的手感来源。
+## 原版 get_unit_at 用的是 `radius × 1.4`，这里对齐。
 func pick_point(screen: Vector2, candidates: Array) -> Variant:
 	if not is_ready():
 		return null
 	var best: Variant = null
-	var best_distance := _pick_radius
+	var best_distance := INF
 	for candidate in candidates:
 		var world: Variant = _candidate_position(candidate)
 		if world == null:
@@ -155,10 +168,39 @@ func pick_point(screen: Vector2, candidates: Array) -> Variant:
 		if not is_visible(world):
 			continue
 		var d := world_to_screen(world).distance_to(screen)
-		if d <= best_distance:
+		var reach := _pick_reach_for(candidate)
+		# 最近者取胜：两艘船叠在一起时，选离指针更近的那艘
+		if d <= reach and d < best_distance:
 			best_distance = d
 			best = candidate
 	return best
+
+
+## 某个候选在屏幕上的可点半径（像素）。
+## 候选没有 radius（纯坐标、或验证用的假单位）时回退到固定值，保持旧行为。
+func _pick_reach_for(candidate: Variant) -> float:
+	var world_radius := _candidate_radius(candidate)
+	if world_radius <= 0.0:
+		return _pick_radius
+	var per_px := world_units_per_pixel()
+	if per_px <= 1.0e-6 or not is_finite(per_px):
+		return _pick_radius
+	return maxf(world_radius * PICK_RADIUS_SCALE / per_px, MIN_PICK_RADIUS_PX)
+
+
+## 从候选里取世界半径。Object 与 Dictionary 都支持，拿不到返回 0。
+func _candidate_radius(candidate: Variant) -> float:
+	var value: Variant = null
+	if candidate is Dictionary:
+		value = (candidate as Dictionary).get(&"radius")
+	elif candidate is Object:
+		value = (candidate as Object).get(&"radius")
+	if value == null:
+		return 0.0
+	var t := typeof(value)
+	if t == TYPE_FLOAT or t == TYPE_INT:
+		return maxf(float(value), 0.0)
+	return 0.0
 
 
 ## 框选：候选全部转屏幕坐标后做矩形判定，2D / 3D 同一套代码。
