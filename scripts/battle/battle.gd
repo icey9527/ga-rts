@@ -44,6 +44,7 @@ const INFLATED_COLOR := Color(0.35, 0.75, 1.0, 0.10)
 @onready var _hud: MinimalHUD = $HudLayer/MinimalHUD
 @onready var _projectiles_fx: ProjectileField = $ProjectileField
 @onready var _fx_root: Node3D = $FxRoot
+@onready var _unit_panel: UnitPanel = $HudLayer/UnitPanel
 
 ## 模拟中枢（RefCounted：不占节点、可无头单测）
 var _session: BattleSession = null
@@ -74,8 +75,7 @@ func _ready() -> void:
 	# 注入后就改成“右键弹菜单、选完再下令”；不注入则保持右键直接下令。
 	var menu := get_node_or_null(^"HudLayer/CommandMenu")
 	if menu != null:
-		input_router.set_command_menu(menu)
-	# 暂停（Space，与旧版一致）：输入层只发信号，真正改 Simulation 在这里做。
+		input_router.set_command_menu(menu)	# 暂停（Space，与旧版一致）：输入层只发信号，真正改 Simulation 在这里做。
 	if not input_router.pause_toggled.is_connected(_on_pause_toggled):
 		input_router.pause_toggled.connect(_on_pause_toggled)
 
@@ -105,6 +105,11 @@ func _ready() -> void:
 	# 不反向写任何模拟字段（硬规则 4）。
 	if _hud != null:
 		_hud.bind_session(_session)
+	# 单位面板（U）：纯只读展示，自己从 GameState.selected_units() 取选中
+	if _unit_panel != null:
+		_unit_panel.bind_session(_session)
+		if not input_router.unit_panel_toggled.is_connected(_on_unit_panel_toggled):
+			input_router.unit_panel_toggled.connect(_on_unit_panel_toggled)
 	# 弹道表现层：每帧从 ProjectileManager 读弹体位置重建 MultiMesh（只读）
 	if _projectiles_fx != null:
 		_projectiles_fx.bind_session(_session)
@@ -322,6 +327,11 @@ func _on_command_applied(_kind: StringName, _count: int) -> void:
 
 func _on_pause_toggled() -> void:
 	Simulation.toggle_pause()
+
+
+func _on_unit_panel_toggled() -> void:
+	if _unit_panel != null:
+		_unit_panel.toggle()
 
 
 # ---------------------------------------------------------------- 路径线（L2，只读模拟）
