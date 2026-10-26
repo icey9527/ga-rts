@@ -41,6 +41,9 @@ signal range_display_changed(enabled: bool)
 signal altitude_highlight_changed(enabled: bool)
 ## PageUp / PageDown 切换焦点高度层（索引对应 ALTITUDE_LAYERS）
 signal altitude_layer_changed(layer_index: int)
+## 暂停开关被按下（Space）。**本类不直接改 Simulation**：
+## 输入层只负责“玩家想暂停”这件事，真正改模拟状态由接线层（battle.gd）做。
+signal pause_toggled
 
 ## 点击 / 拖拽的判定阈值（像素）。与相机自带的同名常量口径一致：
 ## 小于它就是一次点击，大于它才是一次拖拽。
@@ -312,6 +315,10 @@ func _handle_key_pressed(key: InputEventKey) -> void:
 		return
 
 	# 离散型：一个 action 一次动作
+	if key.is_action_pressed(&"toggle_pause", false, true):
+		pause_toggled.emit()
+		get_viewport().set_input_as_handled()
+		return
 	if key.is_action_pressed(&"toggle_view_mode", false, true):
 		_rig.toggle_mode()
 		return

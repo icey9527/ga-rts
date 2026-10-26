@@ -27,7 +27,26 @@ var _accumulator := 0.0
 var _tick_index := 0
 
 
+## 暂停开关（Space，与旧版一致）。
+## 暂停时**不累积时间**：继续后不会“补跑”停住的那段 —— 否则玩家一解除暂停
+## 就会被积压的几个 tick 瞬间打一波，手感受很坑。
+var paused := false
+
+
+func set_paused(value: bool) -> void:
+	paused = value
+	_accumulator = 0.0
+
+
+## 切换暂停，返回切换后的状态（供 UI 显示）
+func toggle_pause() -> bool:
+	set_paused(not paused)
+	return paused
+
+
 func _physics_process(delta: float) -> void:
+	if paused:
+		return
 	_accumulator += delta
 	var steps := 0
 	while _accumulator >= TICK_SECONDS and steps < MAX_TICKS_PER_FRAME:

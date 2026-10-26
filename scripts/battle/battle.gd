@@ -70,6 +70,9 @@ func _ready() -> void:
 
 	# 依赖注入，不在 InputRouter 里写死节点路径
 	input_router.setup(camera_rig, camera_rig.view_projection())
+	# 暂停（Space，与旧版一致）：输入层只发信号，真正改 Simulation 在这里做。
+	if not input_router.pause_toggled.is_connected(_on_pause_toggled):
+		input_router.pause_toggled.connect(_on_pause_toggled)
 
 	# 地图先加载：天空 / 障碍 / 单位 / 进场机位全从它来（L0 → 本文件只做接线）
 	_load_map()
@@ -310,6 +313,10 @@ func _on_route_assigned(_unit: Unit, _path: PackedVector3Array) -> void:
 
 func _on_command_applied(_kind: StringName, _count: int) -> void:
 	_rebuild_route_mesh()
+
+
+func _on_pause_toggled() -> void:
+	Simulation.toggle_pause()
 
 
 # ---------------------------------------------------------------- 路径线（L2，只读模拟）
