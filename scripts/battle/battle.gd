@@ -52,7 +52,8 @@ const INFLATED_COLOR := Color(0.35, 0.75, 1.0, 0.10)
 ## 模拟中枢（RefCounted：不占节点、可无头单测）
 var _session: BattleSession = null
 ## 最小交战 AI（S4 前的占位实现）：只驱动敌方队伍，否则主场景里两支舰队一直对望
-var _ai: SimpleAI = null
+## 生产路径用 AIDirector（四层：战略/集火/执行/数据）；SimpleAI 保留给验证场景与探针。
+var _ai: AIDirector = null
 ## 进入指选前的暂停态。退出指选时恢复它 —— 不能无条件 resume，
 ## 否则玩家原本按空格暂停着，点一次菜单就被强行继续了。
 var _paused_before_targeting := false
@@ -131,9 +132,8 @@ func _ready() -> void:
 	if _projectiles_fx != null:
 		_projectiles_fx.bind_session(_session)
 
-	# 最小交战 AI：只控敌方（team 1）。玩家指挥 team 0。
-	# 没有它的话，不给命令就永远不会打起来 —— S3 结束时的真实状态。
-	_ai = SimpleAI.new(AI_TEAM)
+	# 四层舰队 AI：战略（力量对比）→ 集火（低分优先+滞回）→ 执行（下令）
+	_ai = AIDirector.new(AI_TEAM)
 
 	# 单一更新驱动：Simulation 每 tick 发一次，本文件只转发给 session（硬规则 2）
 	if not Simulation.ticked.is_connected(_on_ticked):
