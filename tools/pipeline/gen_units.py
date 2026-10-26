@@ -76,6 +76,30 @@ ROLES = [
     ("mothership",       "ou241", 561.76, 26000,  90,  4,  3,   0, "heavy_beam",        6, (0.0, 30.0, 0.0)),
 ]
 
+# ---------------------------------------------------------------- 战斗行为（T-4.2）
+# 决定单位接近目标后怎么走位。不填就用 close_in（最安全）。
+#   close_in  压到能打的最小距离（突击/撞击/轰炸）
+#   standoff  保持中距离：太远压上、太近后撤（狙击/炮击/航母）
+#   orbit     绕着目标飞（散弹炮艇：绕起来才能把扇形覆盖用满）
+#   strafe    打完侧向换位（战斗机/拦截机：原作 behavior.lua 的 fighter_pass）
+BEHAVIORS = {
+    "light": "close_in",
+    "scout": "strafe",
+    "interceptor": "strafe",
+    "repair": "standoff",
+    "fighter": "strafe",
+    "gunship": "orbit",
+    "sniper": "standoff",
+    "artillery": "standoff",
+    "bomber": "close_in",
+    "collector": "close_in",
+    "missile_frigate": "standoff",
+    "tiger": "close_in",
+    "heavy": "close_in",
+    "carrier": "standoff",
+    "mothership": "standoff",
+}
+
 CN_NAMES = {
     "light": ("轻型快攻机", "双舷齐发爆破，轻快灵活，靠数量与速度淹没对手。"),
     "scout": ("电子侦察机", "战场的眼睛。速度快、装甲薄，负责前出探路与骚扰。"),
@@ -124,6 +148,7 @@ def unit_tbl(role, model, radius, hp, speed, yaw, pitch, alt, weapon, count, spr
     radar = int(2000 + radius * 3)
     cost = int(hp / 30)
     sx, sy, sz = spread
+    behavior = BEHAVIORS.get(role, "close_in")
     return f"""; ============================================================
 ; {cn}（{role}）
 ;
@@ -155,6 +180,11 @@ model     = {model}
 main        = {weapon}
 count:int   = {count}
 spread:vec3 = {sx:g},{sy:g},{sz:g}
+
+; 战斗行为（T-4.2）：接近目标后怎么走位。不写就默认 close_in。
+;   close_in / standoff / orbit / strafe
+[behavior]
+kind        = {behavior}
 """
 
 

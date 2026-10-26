@@ -74,6 +74,15 @@ var cruise_altitude := 0.0
 var max_hp := 0.0
 ## 模型逻辑名（[assets] model），交给 Registry.asset() 解析 —— 代码里不出现路径
 var model := ""
+
+## 战斗行为原型（[behavior] kind）。
+## 决定单位**接近目标后怎之走位**，不同机型因此打法不同（而不是只数值不同）：
+##   close_in  贴近打（默认，最简单也最不会出错）
+##   standoff  保持距离（狙击/炮击：太近才后撤）
+##   orbit     绕目标环绕（散弹炮艇）
+##   strafe    打完换位（战斗机/拦截机）
+## 缺这个键时用 close_in，不报错 —— 它是新增能力，旧数据不应因此无法加载。
+var behavior_kind := "close_in"
 ## 本机型哪些必需键在 TBL 里缺失（空 = 数据完整）。读它请用 missing_keys()。
 var _missing_keys := PackedStringArray()
 
@@ -93,6 +102,8 @@ static func from_record(def_id: String, record: Dictionary) -> UnitDef:
 	var assets: Dictionary = record.get("assets", {})
 	def.display_name = str(stats.get("name", def_id))
 	def.model = str(assets.get("model", ""))
+	var behavior: Dictionary = record.get("behavior", {})
+	def.behavior_kind = str(behavior.get("kind", "close_in"))
 
 	for canonical in REQUIRED_STATS:
 		if not STAT_ALIASES.has(canonical):
@@ -161,6 +172,7 @@ func apply_to(unit: Unit) -> void:
 	# 比不校验更危险：数据看着齐全，运行时却全部是 1 血。
 	unit.max_hp = max_hp
 	unit.hp = max_hp
+	unit.behavior_kind = StringName(behavior_kind)
 
 
 ## 诊断用的一行文本

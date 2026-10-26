@@ -151,6 +151,11 @@ var alive := true
 ## 伤害结算在目标侧发生（ADR-0013：命中只给信号，弹体不改单位状态）。
 var max_hp := 1.0
 var hp := 1.0
+
+## 战斗行为原型（[behavior] kind，由 UnitDef 装配）。
+## 决定接近目标后怎么走位：close_in / standoff / orbit / strafe。
+## 具体执行在 BattleSession._step_pursuit —— 单位自己不推自己（硬规则 3）。
+var behavior_kind: StringName = &"close_in"
 ## 累计承受伤害（诊断用，验证「伤害只结算一次」）
 var damage_taken := 0.0
 

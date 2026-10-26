@@ -29,3 +29,8 @@ model     = ou231
 main        = missile_pod
 count:int   = 4
 spread:vec3 = 8,0,0
+
+; 战斗行为（T-4.2）：接近目标后怎么走位。不写就默认 close_in。
+;   close_in / standoff / orbit / strafe
+[behavior]
+kind        = standoff

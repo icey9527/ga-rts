@@ -817,22 +817,76 @@ func _step_pursuit(dt: float) -> void:
 		var target := _context.unit_by_id(unit.target_id)
 		if target == null:
 			continue
-		# 开火距离 = min(交战距离, 最远炮塔射程)：两个数据源不一致时不赌，取严的
-		var fire_range := unit.weapon_range
-		if unit.weapons != null:
-			var mount_range := unit.weapons.max_range()
-			if mount_range > 0.0:
-				fire_range = minf(fire_range, mount_range)
-		if unit.position.distance_to(target.position) <= fire_range * PURSUIT_SLACK:
+		var fire_range := _fire_range_of(unit)
+		# 行为原型决定“往哪飞”；null = 当前不用重算
+		var wanted: Variant = _behavior_destination(unit, target, fire_range)
+		if wanted == null:
 			continue
-		# 航线还基本指向目标 → 不重复拉（避免每 0.5 s 把航线重置一次导致原地画圈）
+		var point: Vector3 = wanted
+		# 航线还基本指向这个目的地 → 不重复拉（避免每 0.5 s 把航线重置）
 		if unit.has_active_waypoint() and not unit.route.is_empty():
 			var destination := unit.route[unit.route.size() - 1]
-			if destination.distance_to(target.position) <= PURSUIT_RETARGET_DISTANCE:
+			if destination.distance_to(point) <= PURSUIT_RETARGET_DISTANCE:
 				continue
 		_pursuit_cooldown[unit.id] = PURSUIT_INTERVAL
 		_pursuits += 1
-		_assign_route(unit, target.position)
+		_assign_route(unit, point)
+
+
+## 开火距离 = min(交战距离, 最远炮塔射程)。
+## 两个数据源不一致时不赌，取严的 —— 否则会停在“状态机认为在射程内、
+## 炮塔却够不着”的空档里。
+func _fire_range_of(unit: Unit) -> float:
+	var fire_range := unit.weapon_range
+	if unit.weapons != null:
+		var mount_range := unit.weapons.max_range()
+		if mount_range > 0.0:
+			fire_range = minf(fire_range, mount_range)
+	return fire_range
+
+
+## 按行为原型算出单位该飞向哪里（T-4.2）。返回 Vector3 或 null。
+##
+## 之前所有机型都只有一种行为（一路压到开火距离），所以 15 个机型
+## 除了数值不同、打法完全一样。这里按 [behavior] kind 分开：
+##   close_in  压到能打的最小距离（突击/撞击/轰炸）
+##   standoff  保持中距离：太远压上、太近后撤、射程内不动（狙击/炮击/航母）
+##   orbit     在目标周围绕圈（散弹炮艇：绕起来才能把扇形覆盖用满）
+##   strafe    打完侧向换位（战斗机/拦截机：原作 behavior.lua 的 fighter_pass）
+func _behavior_destination(unit: Unit, target: Unit, fire_range: float) -> Variant:
+	var to_target := target.position - unit.position
+	var dist := to_target.length()
+	var flat := Vector3(to_target.x, 0.0, to_target.z)
+	if flat.length_squared() < 1.0e-6:
+		flat = Vector3.FORWARD
+	flat = flat.normalized()
+
+	match unit.behavior_kind:
+		&"standoff":
+			if dist > fire_range * 0.85:
+				return target.position
+			if dist < fire_range * 0.55:
+				# 后撤：往回飞一段，避免被贴脸
+				return unit.position - flat * 300.0
+			return null
+		&"orbit":
+			if dist > fire_range * 0.8:
+				return target.position
+			# 飞到目标周围的一个切点 → 下一次重算又换切点，自然形成环绕
+			var tangent := flat.cross(Vector3.UP).normalized()
+			return target.position + tangent * (fire_range * 0.7)
+		&"strafe":
+			if dist > fire_range * PURSUIT_SLACK:
+				return target.position
+			# 侧向换位。方向由 id 奇偶决定，保证同输入同结果（不用随机）
+			var side := flat.cross(Vector3.UP).normalized()
+			var sign_side := 1.0 if (unit.id % 2) == 0 else -1.0
+			return unit.position + side * (250.0 * sign_side)
+		_:
+			# close_in（默认）
+			if dist <= fire_range * PURSUIT_SLACK:
+				return null
+			return target.position
 
 
 ## 把本 tick 的只读视图刷进 BattleContext（AI 只看它，不看本类）
