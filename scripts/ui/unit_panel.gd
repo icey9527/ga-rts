@@ -19,6 +19,9 @@ const MAX_ROWS := 10
 const BAR_WIDTH := 96.0
 const BAR_HEIGHT := 6.0
 
+## 每行头像尺寸（像素）。原版是 44×44；我们的行高较小，取 22px 刚好认得出人脸。
+const FACE_SIZE := 22.0
+
 var _session: BattleSession = null
 ## 已建好的行控件：{ label: Label, bar: ColorRect, bar_bg: ColorRect }
 var _rows: Array[Dictionary] = []
@@ -46,6 +49,14 @@ func _ready() -> void:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override(&"separation", 6)
 
+		# 立绘缩略图（S5 立绘迁移）。没有立绘时留空，不画占位方块 ——
+		# 一个空方块比“没有头像”更像 bug。
+		var face := TextureRect.new()
+		face.custom_minimum_size = Vector2(FACE_SIZE, FACE_SIZE)
+		face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		row.add_child(face)
+
 		var label := Label.new()
 		label.add_theme_font_size_override(&"font_size", 12)
 		label.custom_minimum_size = Vector2(140.0, 0.0)
@@ -64,7 +75,7 @@ func _ready() -> void:
 		row.add_child(bar)
 
 		_root.add_child(row)
-		_rows.append({"row": row, "label": label, "bar": bar})
+		_rows.append({"row": row, "label": label, "bar": bar, "face": face})
 		row.visible = false
 
 
@@ -116,6 +127,7 @@ func _refresh() -> void:
 			continue
 		var unit: Unit = units[i]
 		row.visible = true
+		(entry["face"] as TextureRect).texture = PortraitCache.texture(unit.portrait_chara)
 		(entry["label"] as Label).text = "%s  %d%%" % [
 			unit.def_id, int(round(unit.hp_ratio() * 100.0))]
 		var bar := entry["bar"] as ColorRect

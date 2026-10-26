@@ -34,3 +34,8 @@ model     = ou134
 main      = heavy_beam
 count:int = 4
 spread:vec3 = 0,4.5,0
+
+
+; 角色头像（S5 立绘迁移）：图在 assets/ui/faces/043.png
+[portrait]
+chara       = "043"

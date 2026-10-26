@@ -34,3 +34,9 @@ spread:vec3 = 0,0,0
 ;   close_in / standoff / orbit / strafe
 [behavior]
 kind        = close_in
+
+; 角色头像（S5 立绘迁移）：图在 assets/ui/faces/<chara>.png，
+; 由 assets.tbl 的 [face] 段解析。空 = 没有头像，表现层回退到机型缩写。
+; **必须加引号**：不加引号 TBL 会当数字解，042 会变成 42、前导零丢失。
+[portrait]
+chara       = "035"

@@ -156,6 +156,10 @@ var hp := 1.0
 ## 决定接近目标后怎么走位：close_in / standoff / orbit / strafe。
 ## 具体执行在 BattleSession._step_pursuit —— 单位自己不推自己（硬规则 3）。
 var behavior_kind: StringName = &"close_in"
+
+## 角色头像编号（[portrait] chara）。空 = 没有头像。
+## 只是逻辑名，表现层用 Registry.asset() 解析成图片路径。
+var portrait_chara := ""
 ## 累计承受伤害（诊断用，验证「伤害只结算一次」）
 var damage_taken := 0.0
 

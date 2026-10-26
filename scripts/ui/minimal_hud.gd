@@ -223,16 +223,36 @@ func _draw_health_bar(at: Vector2, unit: Unit, font: Font) -> void:
 func _draw_marker_badge(at: Vector2, unit: Unit, font: Font, is_selected: bool) -> void:
 	draw_circle(at, BADGE_RADIUS + 2.0, Color(0.04, 0.05, 0.07, 0.9))
 	draw_circle(at, BADGE_RADIUS, _team_color(unit.team).darkened(0.45))
+
+	# 有真立绘就画立绘（内缩 2px 留出外圈），没有就回退到机型缩写。
+	# 立绘是角色（飞行员）的脸，不是舰船图 —— 这是原版口径。
+	var face := _portrait_texture(unit)
+	if face != null:
+		var inner := BADGE_RADIUS - 2.0
+		draw_texture_rect(face,
+			Rect2(at - Vector2(inner, inner), Vector2(inner, inner) * 2.0), false)
+	else:
+		var label := _marker_label(unit)
+		if not label.is_empty() and font != null:
+			var label_size := font.get_string_size(
+				label, HORIZONTAL_ALIGNMENT_LEFT, -1.0, BADGE_FONT_SIZE)
+			draw_string(font,
+				at + Vector2(-label_size.x * 0.5, label_size.y * 0.34),
+				label, HORIZONTAL_ALIGNMENT_LEFT, -1.0, BADGE_FONT_SIZE,
+				Color(1.0, 1.0, 1.0, 0.92))
+
 	var ring := SELECT_COLOR if is_selected else _team_color(unit.team)
 	draw_arc(at, BADGE_RADIUS, 0.0, TAU, 24, ring, 2.0, true)
-	var label := _marker_label(unit)
-	if label.is_empty() or font == null:
-		return
-	var label_size := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1.0, BADGE_FONT_SIZE)
-	draw_string(font,
-		at + Vector2(-label_size.x * 0.5, label_size.y * 0.34),
-		label, HORIZONTAL_ALIGNMENT_LEFT, -1.0, BADGE_FONT_SIZE,
-		Color(1.0, 1.0, 1.0, 0.92))
+
+
+## 头像解析统一走 PortraitCache（共享一份缓存，不在各 UI 类里各存一份）。
+func _portrait_texture(unit: Unit) -> Texture2D:
+	return PortraitCache.texture(unit.portrait_chara)
+
+
+## 验证用：某单位是否真的解析到了立绘
+func has_portrait(unit: Unit) -> bool:
+	return _portrait_texture(unit) != null
 
 
 ## 倒三角：从徽章底部指向机体，坐实“这个头标属于下面那艘船”。

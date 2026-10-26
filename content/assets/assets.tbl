@@ -267,3 +267,27 @@ si_hex_1102   = models/effects/si_hex_1102/si_hex_1102
 si_mes_28ba   = models/effects/si_mes_28ba/si_mes_28ba
 si_mes_28ba01 = models/effects/si_mes_28ba01/si_mes_28ba01
 si_mes_28ba_r = models/effects/si_mes_28ba_r/si_mes_28ba_r
+
+; ============================================================
+; 角色头像（S5 立绘迁移）：逻辑名 = 角色编号
+; 来源 content/teams/default/chara/<id>/face/ 的 #000 普通表情
+; 代码只用逻辑名（Registry.asset("029")），换图只改这张表
+; ============================================================
+[face]
+face_023    = ui/faces/023
+face_024    = ui/faces/024
+face_027    = ui/faces/027
+face_028    = ui/faces/028
+face_029    = ui/faces/029
+face_030    = ui/faces/030
+face_032    = ui/faces/032
+face_033    = ui/faces/033
+face_034    = ui/faces/034
+face_035    = ui/faces/035
+face_036    = ui/faces/036
+face_037    = ui/faces/037
+face_038    = ui/faces/038
+face_039    = ui/faces/039
+face_040    = ui/faces/040
+face_042    = ui/faces/042
+face_043    = ui/faces/043

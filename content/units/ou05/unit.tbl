@@ -37,3 +37,8 @@ main        = pulse_cannon
 count:int   = 2
 spread:vec3 = 3,0,0
 range       = 1800.0
+
+
+; 角色头像（S5 立绘迁移）：图在 assets/ui/faces/042.png
+[portrait]
+chara       = "042"

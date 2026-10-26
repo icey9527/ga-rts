@@ -100,6 +100,30 @@ BEHAVIORS = {
     "mothership": "standoff",
 }
 
+# ---------------------------------------------------------------- 角色头像（S5）
+# 机型 → 角色编号。立绘图在 assets/ui/faces/<id>.png，注册在 assets.tbl 的 [face] 段。
+# 原版靠“谁驾驶这艘船”决定头像；我们没有飞行员概念，
+# 所以按定位配一个固定的角色，换人只改这张表（和 migrate_faces.py 保持一致）。
+PORTRAITS = {
+    "light": "023",
+    "scout": "024",
+    "interceptor": "027",
+    "repair": "028",
+    "fighter": "029",
+    "gunship": "030",
+    "sniper": "032",
+    "artillery": "033",
+    "bomber": "034",
+    "collector": "035",
+    "missile_frigate": "036",
+    "tiger": "037",
+    "heavy": "038",
+    "carrier": "039",
+    "mothership": "040",
+    "ou05": "042",
+    "ou134": "043",
+}
+
 CN_NAMES = {
     "light": ("轻型快攻机", "双舷齐发爆破，轻快灵活，靠数量与速度淹没对手。"),
     "scout": ("电子侦察机", "战场的眼睛。速度快、装甲薄，负责前出探路与骚扰。"),
@@ -149,6 +173,7 @@ def unit_tbl(role, model, radius, hp, speed, yaw, pitch, alt, weapon, count, spr
     cost = int(hp / 30)
     sx, sy, sz = spread
     behavior = BEHAVIORS.get(role, "close_in")
+    chara = PORTRAITS.get(role, "")
     return f"""; ============================================================
 ; {cn}（{role}）
 ;
@@ -185,6 +210,12 @@ spread:vec3 = {sx:g},{sy:g},{sz:g}
 ;   close_in / standoff / orbit / strafe
 [behavior]
 kind        = {behavior}
+
+; 角色头像（S5 立绘迁移）：图在 assets/ui/faces/<chara>.png，
+; 由 assets.tbl 的 [face] 段解析。空 = 没有头像，表现层回退到机型缩写。
+; **必须加引号**：不加引号 TBL 会当数字解，042 会变成 42、前导零丢失。
+[portrait]
+chara       = "{chara}"
 """
 
 

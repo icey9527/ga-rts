@@ -83,6 +83,10 @@ var model := ""
 ##   strafe    打完换位（战斗机/拦截机）
 ## 缺这个键时用 close_in，不报错 —— 它是新增能力，旧数据不应因此无法加载。
 var behavior_kind := "close_in"
+
+## 角色头像编号（[portrait] chara）。空 = 没有头像，表现层回退到机型缩写。
+## 只是逻辑名，真路径由 Registry.asset() 解析（assets.tbl 的 [face] 段）。
+var portrait_chara := ""
 ## 本机型哪些必需键在 TBL 里缺失（空 = 数据完整）。读它请用 missing_keys()。
 var _missing_keys := PackedStringArray()
 
@@ -104,6 +108,8 @@ static func from_record(def_id: String, record: Dictionary) -> UnitDef:
 	def.model = str(assets.get("model", ""))
 	var behavior: Dictionary = record.get("behavior", {})
 	def.behavior_kind = str(behavior.get("kind", "close_in"))
+	var portrait: Dictionary = record.get("portrait", {})
+	def.portrait_chara = str(portrait.get("chara", ""))
 
 	for canonical in REQUIRED_STATS:
 		if not STAT_ALIASES.has(canonical):
@@ -173,6 +179,7 @@ func apply_to(unit: Unit) -> void:
 	unit.max_hp = max_hp
 	unit.hp = max_hp
 	unit.behavior_kind = StringName(behavior_kind)
+	unit.portrait_chara = portrait_chara
 
 
 ## 诊断用的一行文本

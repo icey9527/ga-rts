@@ -18,6 +18,12 @@ func _ready() -> void:
 	var a := session.spawn_unit("ou05", Vector3.ZERO, 0)
 	var b := session.spawn_unit("ou134", Vector3(0.0, 0.0, 500.0), 0)
 	_expect(a != null and b != null, "生成两艘己方单位")
+	# 立绘迁移（S5）：机型数据里带角色编号，且该编号能通过注册表解析出图片。
+	# 这两条是单测“资源真的迁进来了”的唯一凭据 —— 光看代码跑通不算。
+	_expect(not a.portrait_chara.is_empty(),
+		"机型带角色头像编号（%s）" % a.portrait_chara)
+	_expect(PortraitCache.has(a.portrait_chara),
+		"头像资源能解析（chara %s）" % a.portrait_chara)
 	if a == null or b == null:
 		_report()
 		return
